@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
+	"id": "edit-in-neovim",
+	"name": "Edit in Neovim",
+	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"description": "Open a Neovim buffer for the currently open file",
+	"author": "Theseus",
+	"authorUrl": "https://github.com/TheseusGrey",
+	"fundingUrl": "",
+	"isDesktopOnly": true
 }

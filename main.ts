@@ -1,4 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { findNvim, attach, } from 'neovim'
+import * as child_process from 'node:child_process'
 
 // Remember to rename these classes and interfaces!
 
@@ -15,6 +17,25 @@ export default class EditInNeovim extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		console.log("Edit in Neovim Loaded!")
+
+		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' })
+		this.app.workspace.on("file-open", file => {
+			// "$nvim_exec" --server "$server_path" --remote-send "<C-\><C-n>:n $1<CR>:call cursor($2)<CR>"
+			child_process.spawn(found.matches[0].path, [
+				'--embed',
+				'--server', '127.0.0.1:6000',
+				'--remote-send',
+				`"<C-\><C-n>:n ${file?.path}<CR>"`
+			])
+		})
+
+		//const nvim_proc = child_process.spawn(found.matches[0].path, ['--clean', '--embed', '--listen', '127.0.0.1:6000'], {});
+
+		// This command is how we "push" a new buffer to an instance running using --listen
+		// "$nvim_exec" --server "$server_path" --remote-send "<C-\><C-n>:n $1<CR>:call cursor($2)<CR>"
+		//const nvim = attach({ proc: nvim_proc });
+
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {

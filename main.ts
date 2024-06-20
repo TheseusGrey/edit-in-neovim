@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, FileSystemAdapter, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { findNvim, attach, } from 'neovim'
 import * as child_process from 'node:child_process'
 
@@ -6,10 +6,12 @@ import * as child_process from 'node:child_process'
 
 interface EditInNeovimSettings {
 	mySetting: string;
+	terminal: string;
 }
 
 const DEFAULT_SETTINGS: EditInNeovimSettings = {
-	mySetting: 'default'
+	mySetting: 'default',
+	terminal: process.env.TERMINAL || "alacritty",
 }
 
 export default class EditInNeovim extends Plugin {
@@ -17,16 +19,26 @@ export default class EditInNeovim extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		const adapter = this.app.vault.adapter;
 		console.log("Edit in Neovim Loaded!")
-
 		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' })
+
+		if (!(adapter instanceof FileSystemAdapter)) return;
+		child_process.spawn(this.settings.terminal, [
+			'-e',
+			found.matches[0].path,
+			"--listen",
+			"127.0.0.1:6000",
+		], { cwd: adapter.getBasePath() })
+
 		this.app.workspace.on("file-open", file => {
-			// "$nvim_exec" --server "$server_path" --remote-send "<C-\><C-n>:n $1<CR>:call cursor($2)<CR>"
+			if (!file) return;
+			console.log(`Opening ${adapter.getFullPath(file.path)} in neovim`)
 			child_process.spawn(found.matches[0].path, [
 				'--embed',
 				'--server', '127.0.0.1:6000',
-				'--remote-send',
-				`"<C-\><C-n>:n ${file?.path}<CR>"`
+				'--remote',
+				`${file.path}`
 			])
 		})
 

@@ -8,12 +8,14 @@ interface EditInNeovimSettings {
 	terminal: string;
 	listenOn: string;
 	openNeovimOnLoad: boolean;
+	supportedFileTypes: string[];
 }
 
 const DEFAULT_SETTINGS: EditInNeovimSettings = {
 	terminal: process.env.TERMINAL || "alacritty",
 	listenOn: "127.0.0.1:2006",
 	openNeovimOnLoad: true,
+	supportedFileTypes: ['txt', 'md', 'css', 'js', 'ts', 'tsx', 'jsx', 'json'],
 }
 
 export default class EditInNeovim extends Plugin {
@@ -30,8 +32,9 @@ export default class EditInNeovim extends Plugin {
 
 	openInNeovimInstance = (file: TFile | null) => {
 		if (!file) return;
-		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' });
+		if (!this.settings.supportedFileTypes.includes(file.extension)) return;
 
+		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' });
 		child_process.spawn(found.matches[0].path, [
 			'--server', this.settings.listenOn,
 			'--remote',
@@ -120,6 +123,17 @@ class EditInNeovimSettingsTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.openNeovimOnLoad)
 				.onChange(async value => {
 					this.plugin.settings.openNeovimOnLoad = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Supported file types')
+			.setDesc('Which file extensions do you want this extension to try and open?')
+			.addText(text => text
+				.setPlaceholder("Filetypes should be separated by spaces and not include the '.', E.g. 'txt md css html'")
+				.setValue(this.plugin.settings.supportedFileTypes.join(" "))
+				.onChange(async value => {
+					this.plugin.settings.supportedFileTypes = value.split(" ")
 					await this.plugin.saveSettings();
 				}));
 	}

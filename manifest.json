@@ -1,7 +1,7 @@
 {
 	"id": "edit-in-neovim",
 	"name": "Edit in Neovim",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Open a Neovim buffer for the currently open file",
 	"author": "Theseus",

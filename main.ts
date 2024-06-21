@@ -11,7 +11,7 @@ interface EditInNeovimSettings {
 }
 
 const DEFAULT_SETTINGS: EditInNeovimSettings = {
-	terminal: process.env.TERMINAL || "xterm",
+	terminal: process.env.TERMINAL || "alacritty",
 	listenOn: "127.0.0.1:2006",
 	openNeovimOnLoad: true,
 }
@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS: EditInNeovimSettings = {
 export default class EditInNeovim extends Plugin {
 	settings: EditInNeovimSettings;
 
-	spawnNewInstanceOnLoad(nvim: NvimVersion, adapter: FileSystemAdapter) {
+	spawnNewInstanceOnLoad = (nvim: NvimVersion, adapter: FileSystemAdapter) => {
 		child_process.spawn(this.settings.terminal, [
 			'-e',
 			nvim.path,
@@ -28,13 +28,10 @@ export default class EditInNeovim extends Plugin {
 		], { cwd: adapter.getBasePath() })
 	}
 
-	openInNeovimInstance(file: TFile | null) {
+	openInNeovimInstance = (file: TFile | null) => {
 		if (!file) return;
-		if (!(this.app.vault.adapter instanceof FileSystemAdapter)) return;
-
 		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' });
 
-		console.log(`Opening ${this.app.vault.adapter.getFullPath(file.path)} in neovim`)
 		child_process.spawn(found.matches[0].path, [
 			'--server', this.settings.listenOn,
 			'--remote',
@@ -44,16 +41,17 @@ export default class EditInNeovim extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
 		const adapter = this.app.vault.adapter;
-		console.log("Edit in Neovim Loaded! listening on: " + this.settings.listenOn)
 		const found = findNvim({ orderBy: 'desc', minVersion: '0.9.0' })
 		if (found.matches.length === 0) throw Error("No Valid nvim binaries :'( plugin can't run without them");
 
 		if (!(adapter instanceof FileSystemAdapter)) throw Error("I need a FileSystemAdapter in order to work, are you running on mobile?");
 
 		if (this.settings.openNeovimOnLoad) this.spawnNewInstanceOnLoad(found.matches[0], adapter)
+		console.log("Edit in Neovim Loaded! will look for neovim listening at: " + this.settings.listenOn);
 
-		this.app.workspace.on("file-open", this.openInNeovimInstance)
+		this.registerEvent(this.app.workspace.on("file-open", this.openInNeovimInstance));
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
@@ -69,9 +67,7 @@ export default class EditInNeovim extends Plugin {
 		// });
 	}
 
-	onunload() {
-		this.app.workspace.off("file-open", this.openInNeovimInstance)
-	}
+	onunload() { }
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

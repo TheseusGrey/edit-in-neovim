@@ -4,7 +4,7 @@ For those who love the power of Obsidian, but just can't shake wanting absolutel
 
 ## What does it do?
 
-This plugin will pop open a new terminal and run neovim inside (You can turn this off in the settings) when Obsidian starts up.
+This plugin will pop open a new terminal and runs neovim inside it (You can turn this off in the settings) when Obsidian starts up.
 
 After that, every time you open a file inside of Obsidian, that same file will get opened as a new buffer (or focused if already open) inside of the listening neovim instance. This effectively gives you the "linked tabs" functionality you would get inside Obsidian, but with an external editor (in this case neovim) instead.
 

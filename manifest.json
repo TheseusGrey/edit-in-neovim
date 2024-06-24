@@ -6,6 +6,5 @@
 	"description": "Open a Neovim buffer for the currently open file",
 	"author": "Theseus",
 	"authorUrl": "https://github.com/TheseusGrey",
-	"fundingUrl": "",
 	"isDesktopOnly": true
 }

@@ -106,7 +106,7 @@ class EditInNeovimSettingsTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Neovim Server Location')
+			.setName('Neovim server location')
 			.setDesc('The Neovim instance will be spawned using --listen and needs a socket or IP:PORT (not sure if sockets work so use at your own risk)')
 			.addText(text => text
 				.setPlaceholder('127.0.0.1:2006')

@@ -33,7 +33,7 @@ I know Obsidian has vim bindings, but I've built up my own Neovim config and cus
 
 ## Future Plans
 
-For now this is kind of it, if people use this and encounter bugs I'll try and fix them, but I don't have immediate plans to add new features after the initial release. That's not to say I don't have some ideas.
+A few ideas I have about where to take this plugin or at least the idea behind it beyond just fixing bugs and keeping things functioning:
 
 - Embed the neovim instance in Obsidian(?), there's already a plugin someone else made for embedding consoles/terminals you can check out [here](https://github.com/polyipseity/obsidian-terminal).
 - Make the plugin play nicely with multiple obsidian tabs, current neovim gets alil confused if there are multiple tabs open.

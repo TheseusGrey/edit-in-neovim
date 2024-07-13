@@ -27,6 +27,8 @@ vim.api.nvim_create_autocmd("BufAdd", {
 })
 ```
 
+Fair warning this `autocmd` is alil buggy in cases where you have multiple tabs open in Obsidian, as well as the potential for it to create cycles. If anyone can has an idea for addressing these issues I'm all for it, since having the link go both ways is the ideal.
+
 ## Why?
 
 I know Obsidian has vim bindings, but I've built up my own Neovim config and customised it to my liking and that's where I like to edit text.

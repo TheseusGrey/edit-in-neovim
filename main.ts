@@ -27,10 +27,7 @@ const DEFAULT_SETTINGS: EditInNeovimSettings = {
 export default class EditInNeovim extends Plugin {
 	settings: EditInNeovimSettings;
 
-	spawnNewInstanceOnLoad = (
-		nvim: NvimVersion,
-		adapter: FileSystemAdapter,
-	) => {
+	spawnNewInstance = (nvim: NvimVersion, adapter: FileSystemAdapter) => {
 		child_process.spawn(
 			this.settings.terminal,
 			["-e", nvim.path, "--listen", this.settings.listenOn],
@@ -67,7 +64,7 @@ export default class EditInNeovim extends Plugin {
 			);
 
 		if (this.settings.openNeovimOnLoad)
-			this.spawnNewInstanceOnLoad(found.matches[0], adapter);
+			this.spawnNewInstance(found.matches[0], adapter);
 		console.log(
 			"Edit in Neovim Loaded! will look for neovim listening at: " +
 				this.settings.listenOn,
@@ -80,16 +77,11 @@ export default class EditInNeovim extends Plugin {
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
 
-		this.addCommand({});
-		// Plan would be to ask for the path to the file you want to open here
-		// this.addCommand({
-		// id: 'edit-in-neovim-open',
-		// name: 'Open In Neovim',
-		// editorCallback: (editor: Editor, view: MarkdownView) => {
-		// console.log(editor.getSelection());
-		// editor.replaceSelection('Sample Editor Command');
-		// }
-		// });
+		this.addCommand({
+			id: "edit-in-neovim-new-instance",
+			name: "Open Neovim",
+			callback: () => this.spawnNewInstance(found.matches[0], adapter),
+		});
 	}
 
 	onunload() {}

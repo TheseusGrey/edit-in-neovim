@@ -8,8 +8,8 @@ import {
   TFile,
 } from "obsidian";
 import { findNvim } from "neovim";
-import Neovim from "./src/Neovim";
-import EditInNeovimSettingsTab, { EditInNeovimSettings, DEFAULT_SETTINGS } from "./src/Settings";
+import Neovim from "./Neovim";
+import EditInNeovimSettingsTab, { EditInNeovimSettings, DEFAULT_SETTINGS } from "./Settings";
 
 export default class EditInNeovim extends Plugin {
   settings: EditInNeovimSettings;

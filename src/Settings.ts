@@ -3,7 +3,7 @@ import {
   PluginSettingTab,
   Setting,
 } from "obsidian";
-import EditInNeovim from "../main";
+import EditInNeovim from "./main";
 import Neovim from "./Neovim";
 
 export interface EditInNeovimSettings {

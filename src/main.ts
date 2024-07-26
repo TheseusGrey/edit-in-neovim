@@ -20,7 +20,7 @@ export default class EditInNeovim extends Plugin {
     this.pluginChecks();
 
     this.neovim = new Neovim(this.settings);
-    const adapter = this.app.vault.adapter;
+    const adapter = this.app.vault.adapter as FileSystemAdapter;
 
     if (this.settings.openNeovimOnLoad) this.neovim.newInstance(adapter);
 

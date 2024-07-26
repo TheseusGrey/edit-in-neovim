@@ -1,4 +1,6 @@
+import { TFile, FileSystemAdapter } from "obsidian";
 import { findNvim, attach } from "neovim";
+import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 
 export default class Neovim {

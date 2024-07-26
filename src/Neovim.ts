@@ -33,18 +33,11 @@ export default class Neovim {
     });
 
     this.instance = attach({ proc: this.process! });
-    await this.openFile(file);
   };
 
   openFile = async (file: TFile | null) => {
     if (!file) return;
     if (!this.settings.supportedFileTypes.includes(file.extension)) return;
-
-    // Prevents us from re-opening a buffer that already exists in the buffer list
-    // This does include potentially unloaded buffers, might need to check for that
-    const buffers = await this.getBuffers()
-    console.log(buffers);
-    if (buffers.some(buf => buf.name().contains(file.path))) return;
 
     child_process.spawn(this.nvimBinary.path, [
       "--server",

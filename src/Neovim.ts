@@ -1,4 +1,4 @@
-import { TFile, FileSystemAdapter } from "obsidian";
+import { TFile, FileSystemAdapter, Notice } from "obsidian";
 import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
@@ -21,7 +21,10 @@ export default class Neovim {
   }
 
   async newInstance(adapter: FileSystemAdapter, file?: TFile | null) {
-    if (this.process) return;
+    if (this.process) {
+      new Notice("Linked Neovim instance already running", 5000);
+return;
+    }
 
     this.process = child_process.spawn(
       this.settings.terminal,
@@ -50,10 +53,7 @@ export default class Neovim {
   };
 
   close = () => {
-    if (this.process?.disconnect) {
-      this.process.disconnect();
-    }
-
+    this.process?.kill();
     this.instance?.quit();
   };
 }

@@ -30,6 +30,10 @@ export default class EditInNeovim extends Plugin {
       this.app.workspace.on("file-open", this.neovim.openFile),
     );
 
+    this.registerEvent(
+      this.app.workspace.on("quit", this.neovim?.close),
+    );
+
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
 

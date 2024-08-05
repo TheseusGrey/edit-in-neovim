@@ -11,7 +11,7 @@ export default class Neovim {
 
   constructor(settings: EditInNeovimSettings) {
     this.settings = settings;
-    this.nvimBinary = findNvim({ orderBy: "desc", minVersion: "0.9.0" }).matches[0];
+    this.nvimBinary = findNvim({ orderBy: "desc" }).matches[0];
   }
 
   getBuffers = async () => {

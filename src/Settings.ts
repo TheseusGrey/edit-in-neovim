@@ -11,6 +11,7 @@ export interface EditInNeovimSettings {
   listenOn: string;
   openNeovimOnLoad: boolean;
   supportedFileTypes: string[];
+  pathToBinary: string;
 }
 
 export const DEFAULT_SETTINGS: EditInNeovimSettings = {
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: EditInNeovimSettings = {
   listenOn: "127.0.0.1:2006",
   openNeovimOnLoad: true,
   supportedFileTypes: ["txt", "md", "css", "js", "ts", "tsx", "jsx", "json"],
+  pathToBinary: "",
 };
 
 export default class EditInNeovimSettingsTab extends PluginSettingTab {
@@ -60,6 +62,21 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           .setValue(this.plugin.settings.listenOn)
           .onChange(async (value) => {
             this.plugin.settings.listenOn = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Path to Neovim binary")
+      .setDesc(
+        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("/path/to/nvim-bin/nvim")
+          .setValue(this.plugin.settings.pathToBinary)
+          .onChange(async (value) => {
+            this.plugin.settings.pathToBinary = value;
             await this.plugin.saveSettings();
           }),
       );

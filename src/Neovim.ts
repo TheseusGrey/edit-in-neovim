@@ -2,6 +2,7 @@ import { TFile, FileSystemAdapter, Notice } from "obsidian";
 import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
+import os from "node:os";
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
@@ -30,7 +31,7 @@ return;
     this.process = child_process.spawn(
       this.settings.terminal,
       ["-e", this.nvimBinary.path, "--listen", this.settings.listenOn],
-      { cwd: adapter.getBasePath() },
+      { cwd: adapter.getBasePath(), shell: os.userInfo().shell },
     );
 
     this.process.on("exit", (code) => {
@@ -45,12 +46,7 @@ return;
     if (!file) return;
     if (!this.settings.supportedFileTypes.includes(file.extension)) return;
 
-    child_process.spawn(this.nvimBinary.path, [
-      "--server",
-      this.settings.listenOn,
-      "--remote",
-      `${file.path}`,
-    ]);
+    child_process.exec(`${this.nvimBinary.path} --server ${this.settings.listenOn} --remote ${file.path}`);
   };
 
   close = () => {

@@ -69,7 +69,7 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Path to Neovim binary")
       .setDesc(
-        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead.",
+        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead. (requires reload)",
       )
       .addText((text) =>
         text

@@ -64,20 +64,14 @@ export default class EditInNeovim extends Plugin {
   }
 
   pluginChecks() {
-    const found = findNvim({ orderBy: "desc", minVersion: "0.9.0" });
+    const found = findNvim({ orderBy: "desc" });
 
     if (found.matches.length === 0) {
-      new Notice("Edit In Neovim: No Valid nvim binary found T_T \n make sure neovim is installed and on your PATH", 5000);
-      throw Error(
-        "No Valid nvim binaries :'( plugin can't run without them",
-      );
+      new Notice("Edit In Neovim: No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH", 5000);
     }
 
     if (!(this.app.vault.adapter instanceof FileSystemAdapter)) {
       new Notice("Edit In Neovim: unknown adapter, unable to access vault files", 5000);
-      throw Error(
-        "I need a FileSystemAdapter in order to work, are you running on mobile?",
-      );
     }
   }
 }

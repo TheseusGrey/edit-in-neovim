@@ -2,7 +2,7 @@ import { TFile, FileSystemAdapter, Notice } from "obsidian";
 import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
-import os from "node:os";
+import * as os from "node:os";
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
@@ -31,25 +31,25 @@ return;
     this.process = child_process.spawn(
       this.settings.terminal,
       ["-e", this.nvimBinary.path, "--listen", this.settings.listenOn],
-      { cwd: adapter.getBasePath(), shell: os.userInfo().shell },
+      { cwd: adapter.getBasePath(), shell: os.userInfo().shell || undefined },
     );
 
-    this.process.on("error", (err) => {
+    this.process?.on("error", (err) => {
       this.process = undefined;
       this.instance = undefined;
     });
 
-    this.process.on("close", (code) => {
+    this.process?.on("close", (code) => {
       this.process = undefined;
       this.instance = undefined;
     });
 
-    this.process.on("disconnect", (code) => {
+    this.process?.on("disconnect", () => {
       this.process = undefined;
       this.instance = undefined;
     });
 
-    this.process.on("exit", (code) => {
+    this.process?.on("exit", (code) => {
       this.process = undefined;
       this.instance = undefined;
     });

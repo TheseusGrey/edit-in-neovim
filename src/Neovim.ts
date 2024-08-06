@@ -34,6 +34,21 @@ return;
       { cwd: adapter.getBasePath(), shell: os.userInfo().shell },
     );
 
+    this.process.on("error", (err) => {
+      this.process = undefined;
+      this.instance = undefined;
+    });
+
+    this.process.on("close", (code) => {
+      this.process = undefined;
+      this.instance = undefined;
+    });
+
+    this.process.on("disconnect", (code) => {
+      this.process = undefined;
+      this.instance = undefined;
+    });
+
     this.process.on("exit", (code) => {
       this.process = undefined;
       this.instance = undefined;

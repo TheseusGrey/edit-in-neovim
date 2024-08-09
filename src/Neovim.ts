@@ -59,6 +59,7 @@ export default class Neovim {
   }
 
   openFile = async (file: TFile | null) => {
+    if (!this.instance) return;
     if (!file) return;
     if (!this.settings.supportedFileTypes.includes(file.extension)) return;
 

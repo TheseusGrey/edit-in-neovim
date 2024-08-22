@@ -3,6 +3,7 @@ import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as os from "node:os";
+import { isPortInUse } from "./utils";
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
@@ -59,10 +60,16 @@ export default class Neovim {
   }
 
   openFile = async (file: TFile | null) => {
-    if (!this.instance) return;
     if (!file) return;
     if (!this.settings.supportedFileTypes.includes(file.extension)) return;
+    if (!this.instance) {
+      const port = this.settings.listenOn.split(":").at(-1)
+      console.log(port)
+      if (!port) return;
+      if (!await isPortInUse(port)) return;
+    };
 
+    console.log("asdasd");
     child_process.exec(
       `${this.nvimBinary.path} --server ${this.settings.listenOn} --remote '${file.path}'`,
     );

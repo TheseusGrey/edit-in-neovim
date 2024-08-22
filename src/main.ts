@@ -1,11 +1,7 @@
 import {
-  App,
   FileSystemAdapter,
   Plugin,
-  PluginSettingTab,
   Notice,
-  Setting,
-  TFile,
 } from "obsidian";
 import { findNvim } from "neovim";
 import Neovim from "./Neovim";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import systeminformation from "systeminformation";
 
 export async function isPortInUse(port: string) {

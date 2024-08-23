@@ -1,8 +1,4 @@
-import {
-  App,
-  PluginSettingTab,
-  Setting,
-} from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import EditInNeovim from "./main";
 import Neovim from "./Neovim";
 
@@ -105,8 +101,7 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           )
           .setValue(this.plugin.settings.supportedFileTypes.join(" "))
           .onChange(async (value) => {
-            this.plugin.settings.supportedFileTypes =
-              value.split(" ");
+            this.plugin.settings.supportedFileTypes = value.split(" ");
             await this.plugin.saveSettings();
           }),
       );

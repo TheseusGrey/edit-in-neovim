@@ -61,13 +61,17 @@ export default class Neovim {
 
   openFile = async (file: TFile | null) => {
     if (!file) return;
-    if (!this.settings.supportedFileTypes.includes(file.extension)) return;
+    if (
+      !this.settings.supportedFileTypes.includes(file.extension) ||
+      file.name.includes(".excalidraw")
+    )
+      return;
     if (!this.instance) {
-      const port = this.settings.listenOn.split(":").at(-1)
-      console.log(port)
+      const port = this.settings.listenOn.split(":").at(-1);
+      console.log(port);
       if (!port) return;
-      if (!await isPortInUse(port)) return;
-    };
+      if (!(await isPortInUse(port))) return;
+    }
 
     console.log("asdasd");
     child_process.exec(

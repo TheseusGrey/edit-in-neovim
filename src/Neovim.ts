@@ -66,7 +66,7 @@ export default class Neovim {
       // condition for the excalidraw filetype
       (file.extension == "md" &&
         !this.settings.supportedFileTypes.includes("excalidraw") &&
-        file.name.includes(".excalidraw"))
+        file.name.endsWith(".excalidraw"))
     )
       return;
     if (!this.instance) {

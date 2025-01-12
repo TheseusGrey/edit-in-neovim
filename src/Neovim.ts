@@ -95,7 +95,6 @@ export default class Neovim {
       if (!(await isPortInUse(port))) return;
     }
 
-    console.log("asdasd");
     child_process.exec(
       `${this.nvimBinary.path} --server ${this.settings.listenOn} --remote '${file.path}'`,
     );

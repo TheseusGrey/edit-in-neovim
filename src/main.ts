@@ -56,6 +56,7 @@ export default class EditInNeovim extends Plugin {
   }
 
   async saveSettings() {
+    this.neovim.updateSettings(this.settings)
     await this.saveData(this.settings);
   }
 

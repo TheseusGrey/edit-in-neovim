@@ -15,8 +15,6 @@ export default class EditInNeovim extends Plugin {
     await this.loadSettings();
     this.pluginChecks();
 
-    console.log("Edit in Neovim loaded! :D");
-
     this.neovim = new Neovim(this.settings);
     const adapter = this.app.vault.adapter as FileSystemAdapter;
 
@@ -41,6 +39,12 @@ export default class EditInNeovim extends Plugin {
         .newInstance(adapter)
         .then(() => setTimeout(() => this.neovim.openFile(this.app.workspace.getActiveFile()), 1000)),
     });
+
+    this.addCommand({
+      id: "edit-in-neovim-close-instance",
+      name: "Close Neovim",
+      callback: async () => this.neovim.close,
+    });
   }
 
   onunload() {
@@ -56,7 +60,6 @@ export default class EditInNeovim extends Plugin {
   }
 
   async saveSettings() {
-    this.neovim.updateSettings(this.settings)
     await this.saveData(this.settings);
   }
 

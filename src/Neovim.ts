@@ -3,16 +3,18 @@ import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as os from "node:os";
-import { isPortInUse } from "./utils";
+import { isPortInUse, searchForBinary } from "./utils";
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
   process: ReturnType<(typeof child_process)["spawn"]> | undefined;
   settings: EditInNeovimSettings;
   nvimBinary: ReturnType<typeof findNvim>["matches"][number];
+  termBinary: string | undefined;
 
   constructor(settings: EditInNeovimSettings) {
     this.settings = settings;
+    this.termBinary = searchForBinary(settings.terminal)
     if (this.settings.pathToBinary)
       this.nvimBinary = { path: this.settings.pathToBinary };
     else this.nvimBinary = findNvim({ orderBy: "desc" }).matches[0];
@@ -30,7 +32,8 @@ export default class Neovim {
       console.log(`Failed to find nvim binary due to: ${this.nvimBinary.error}`);
     } else {
       console.log(`Neovim Information:
-  - Path: ${this.nvimBinary.path}
+  - Term Path: ${this.termBinary}
+  - Nvim Path: ${this.nvimBinary.path}
   - Version: ${this.nvimBinary.nvimVersion}
   - Error: ${this.nvimBinary.error}
 `);
@@ -44,7 +47,7 @@ export default class Neovim {
     return this.instance.buffers;
   };
 
-  async newInstance(adapter: FileSystemAdapter, file?: TFile | null) {
+  async newInstance(adapter: FileSystemAdapter) {
     if (this.process) {
       new Notice("Linked Neovim instance already running", 5000);
       return;
@@ -57,11 +60,13 @@ export default class Neovim {
     );
 
     this.process?.on("error", (err) => {
+      console.log(err);
       this.process = undefined;
       this.instance = undefined;
     });
 
     this.process?.on("close", (code) => {
+      console.log(`nvim closed with code: ${code}`);
       this.process = undefined;
       this.instance = undefined;
     });
@@ -72,6 +77,7 @@ export default class Neovim {
     });
 
     this.process?.on("exit", (code) => {
+      console.log(`nvim closed with code: ${code}`);
       this.process = undefined;
       this.instance = undefined;
     });
@@ -103,5 +109,8 @@ export default class Neovim {
   close = () => {
     this.process?.kill();
     this.instance?.quit();
+
+    this.instance = undefined;
+    this.process = undefined;
   };
 }

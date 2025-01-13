@@ -3,7 +3,7 @@ import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as os from "node:os";
-import { isPortInUse, searchForBinary } from "./utils";
+import { isPortInUse, searchForBinary, searchDirs } from "./utils";
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
@@ -16,8 +16,8 @@ export default class Neovim {
     this.settings = settings;
     this.termBinary = searchForBinary(settings.terminal)
     if (this.settings.pathToBinary)
-      this.nvimBinary = { path: this.settings.pathToBinary };
-    else this.nvimBinary = findNvim({ orderBy: "desc" }).matches[0];
+      this.nvimBinary = { path: this.settings.pathToBinary, nvimVersion: "manual_path" };
+    else this.nvimBinary = findNvim({ orderBy: "desc", paths: searchDirs }).matches[0];
 
     // We can let the user know about any edge cases when it comes to finding neovim here :)
     if (this.nvimBinary.path && !this.nvimBinary.nvimVersion) {
@@ -52,9 +52,13 @@ export default class Neovim {
       new Notice("Linked Neovim instance already running", 5000);
       return;
     }
+    if (!this.termBinary) {
+      new Notice("Unknown terminal, is it on your PATH?")
+      return;
+    }
 
     this.process = child_process.spawn(
-      this.settings.terminal,
+      this.termBinary,
       ["-e", this.nvimBinary.path, "--listen", this.settings.listenOn],
       { cwd: adapter.getBasePath(), shell: os.userInfo().shell || undefined },
     );
@@ -72,6 +76,7 @@ export default class Neovim {
     });
 
     this.process?.on("disconnect", () => {
+      console.log("nvim disconnected");
       this.process = undefined;
       this.instance = undefined;
     });

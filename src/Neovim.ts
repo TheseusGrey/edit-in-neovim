@@ -33,7 +33,7 @@ export default class Neovim {
     if (this.nvimBinary.error) {
       console.log(`Failed to find nvim binary due to: ${this.nvimBinary.error}`);
     } else {
-      console.log(`Neovim Informationn:
+      console.log(`Neovim Information:
   - Term Path: ${this.termBinary}
   - Nvim Path: ${this.nvimBinary.path}
   - Version: ${this.nvimBinary.nvimVersion}

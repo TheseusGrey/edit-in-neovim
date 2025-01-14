@@ -1,11 +1,10 @@
-import {
-  FileSystemAdapter,
-  Plugin,
-  Notice,
-} from "obsidian";
+import { FileSystemAdapter, Plugin, Notice } from "obsidian";
 import { findNvim } from "neovim";
 import Neovim from "./Neovim";
-import EditInNeovimSettingsTab, { EditInNeovimSettings, DEFAULT_SETTINGS } from "./Settings";
+import EditInNeovimSettingsTab, {
+  EditInNeovimSettings,
+  DEFAULT_SETTINGS,
+} from "./Settings";
 
 export default class EditInNeovim extends Plugin {
   settings: EditInNeovimSettings;
@@ -15,18 +14,16 @@ export default class EditInNeovim extends Plugin {
     await this.loadSettings();
     this.pluginChecks();
 
-    this.neovim = new Neovim(this.settings);
     const adapter = this.app.vault.adapter as FileSystemAdapter;
+    this.neovim = new Neovim(this.settings, adapter);
 
     if (this.settings.openNeovimOnLoad) this.neovim.newInstance(adapter);
 
     this.registerEvent(
-      this.app.workspace.on("file-open", this.neovim.openFile),
+      this.app.workspace.on("file-open", this.neovim.openFile)
     );
 
-    this.registerEvent(
-      this.app.workspace.on("quit", this.neovim?.close),
-    );
+    this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
@@ -35,9 +32,15 @@ export default class EditInNeovim extends Plugin {
     this.addCommand({
       id: "edit-in-neovim-new-instance",
       name: "Open Neovim",
-      callback: async () => await this.neovim
-        .newInstance(adapter)
-        .then(() => setTimeout(() => this.neovim.openFile(this.app.workspace.getActiveFile()), 1000)),
+      callback: async () =>
+        await this.neovim
+          .newInstance(adapter)
+          .then(() =>
+            setTimeout(
+              () => this.neovim.openFile(this.app.workspace.getActiveFile()),
+              1000
+            )
+          ),
     });
 
     this.addCommand({
@@ -52,11 +55,7 @@ export default class EditInNeovim extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign(
-      {},
-      DEFAULT_SETTINGS,
-      await this.loadData(),
-    );
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
   async saveSettings() {
@@ -67,12 +66,17 @@ export default class EditInNeovim extends Plugin {
     const found = findNvim({ orderBy: "desc" });
 
     if (found.matches.length === 0) {
-      new Notice("Edit In Neovim: No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH", 5000);
+      new Notice(
+        "Edit In Neovim: No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH",
+        5000
+      );
     }
 
     if (!(this.app.vault.adapter instanceof FileSystemAdapter)) {
-      new Notice("Edit In Neovim: unknown adapter, unable to access vault files", 5000);
+      new Notice(
+        "Edit In Neovim: unknown adapter, unable to access vault files",
+        5000
+      );
     }
   }
 }
-

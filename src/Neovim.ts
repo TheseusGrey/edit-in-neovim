@@ -11,8 +11,10 @@ export default class Neovim {
   settings: EditInNeovimSettings;
   nvimBinary: ReturnType<typeof findNvim>["matches"][number];
   termBinary: string | undefined;
+  adapter: FileSystemAdapter;
 
-  constructor(settings: EditInNeovimSettings) {
+  constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter) {
+    this.adapter = adapter;
     this.settings = settings;
     this.termBinary = searchForBinary(settings.terminal)
     if (this.settings.pathToBinary)
@@ -31,7 +33,7 @@ export default class Neovim {
     if (this.nvimBinary.error) {
       console.log(`Failed to find nvim binary due to: ${this.nvimBinary.error}`);
     } else {
-      console.log(`Neovim Information:
+      console.log(`Neovim Informationn:
   - Term Path: ${this.termBinary}
   - Nvim Path: ${this.nvimBinary.path}
   - Version: ${this.nvimBinary.nvimVersion}
@@ -106,8 +108,10 @@ export default class Neovim {
       if (!(await isPortInUse(port))) return;
     }
 
+    const absolutePath = this.adapter.getFullPath(file.path);
+    console.log(`Opening ${absolutePath} in neovim`);
     child_process.exec(
-      `${this.nvimBinary.path} --server ${this.settings.listenOn} --remote '${file.path}'`,
+      `${this.nvimBinary.path} --server ${this.settings.listenOn} --remote '${absolutePath}'`,
     );
   };
 

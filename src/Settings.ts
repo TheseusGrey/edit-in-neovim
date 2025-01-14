@@ -29,7 +29,6 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
-
     containerEl.empty();
 
     new Setting(containerEl)
@@ -44,13 +43,14 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.terminal = value;
             await this.plugin.saveSettings();
+            await this.plugin.updateNeovimInstance();
           }),
       );
 
     new Setting(containerEl)
       .setName("Neovim server location")
       .setDesc(
-        "The Neovim instance will be spawned using --listen and needs a socket or IP:PORT (not sure if sockets work so use at your own risk)",
+        "The Neovim instance will be spawned using --listen and needs a socket or IP:PORT (requires restart)",
       )
       .addText((text) =>
         text
@@ -59,13 +59,14 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.listenOn = value;
             await this.plugin.saveSettings();
+            new Notice("Restart Obsidian to apply the new server location");
           }),
       );
 
     new Setting(containerEl)
       .setName("Path to Neovim binary")
       .setDesc(
-        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead. (requires reload)",
+        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead. (requires restart)",
       )
       .addText((text) =>
         text
@@ -74,6 +75,7 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.pathToBinary = value;
             await this.plugin.saveSettings();
+            new Notice("Restart Obsidian to apply the new Neovim binary path");
           }),
       );
 
@@ -103,6 +105,7 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.supportedFileTypes = value.split(" ");
             await this.plugin.saveSettings();
+            await this.plugin.updateNeovimInstance();
           }),
       );
   }

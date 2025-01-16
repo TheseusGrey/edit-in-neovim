@@ -15,7 +15,8 @@ export default class EditInNeovim extends Plugin {
     this.pluginChecks();
 
     const adapter = this.app.vault.adapter as FileSystemAdapter;
-    this.neovim = new Neovim(this.settings, adapter);
+    this.neovim = new Neovim(this.settings, adapter, this.restAPIEnabled());
+
 
     if (this.settings.openNeovimOnLoad) this.neovim.newInstance(adapter);
 
@@ -78,5 +79,14 @@ export default class EditInNeovim extends Plugin {
         5000
       );
     }
+  }
+
+  restAPIEnabled(): string | undefined {
+    // @ts-ignore
+    const plugins = this.app.plugins.plugins
+    if (Object.keys(plugins).contains("obsidian-local-rest-api")) {
+      return plugins["obsidian-local-rest-api"].settings.apiKey
+    }
+    return undefined
   }
 }

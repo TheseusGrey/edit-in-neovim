@@ -12,11 +12,13 @@ export default class Neovim {
   nvimBinary: ReturnType<typeof findNvim>["matches"][number];
   termBinary: string | undefined;
   adapter: FileSystemAdapter;
+  apiKey: string | undefined;
 
-  constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter) {
+  constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter, apiKey: string | undefined) {
     this.adapter = adapter;
     this.settings = settings;
-    this.termBinary = searchForBinary(settings.terminal)
+    this.apiKey = apiKey;
+    this.termBinary = searchForBinary(settings.terminal);
     if (this.settings.pathToBinary)
       this.nvimBinary = { path: this.settings.pathToBinary, nvimVersion: "manual_path" };
     else this.nvimBinary = findNvim({ orderBy: "desc", paths: searchDirs }).matches[0];
@@ -40,7 +42,6 @@ export default class Neovim {
   - Error: ${this.nvimBinary.error}
 `);
     }
-
   }
 
   getBuffers = async () => {
@@ -59,10 +60,20 @@ export default class Neovim {
       return;
     }
 
+    const extraEnvVars: Record<string, string> = {}
+    if (this.apiKey) extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.apiKey
+
     this.process = child_process.spawn(
       this.termBinary,
       ["-e", this.nvimBinary.path, "--listen", this.settings.listenOn],
-      { cwd: adapter.getBasePath(), shell: os.userInfo().shell || undefined },
+      {
+        cwd: adapter.getBasePath(),
+        shell: os.userInfo().shell || true,
+        env: {
+          ...process.env,
+          ...extraEnvVars,
+        }
+      },
     );
 
     this.process?.on("error", (err) => {

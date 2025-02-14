@@ -2,6 +2,10 @@
 
 For those who love the power of Obsidian, but just can't shake wanting absolutely any and all text editing to happen inside of neovim.
 
+## Important
+
+Several users have reported that the plugin doesn't function when obsidian is installed using flatpak.
+
 ## What does it do?
 
 This plugin will pop open a new terminal and runs neovim inside it (You can turn this off in the settings) when Obsidian starts up.
@@ -13,21 +17,9 @@ After that, every time you open a file inside of Obsidian, that same file will g
 If you also want new buffers in Neovim to open up in Obsidian, here's what you'll need:
 
 - The [obsidian.nvim](https://github.com/epwalsh/obsidian.nvim) plugin, also highly recommended in general for interacting with Obsidian vaults from Neovim
-- Add the following `autocmd` to your neovim config:
+- The [obsidian-bridge.nvim](https://github.com/oflisback/obsidian-bridge.nvim) along side the [obsidian-local-rest-api](https://github.com/coddingtonbear/obsidian-local-rest-api), this is what enables to communication to happen in the reverse direction.
 
-```lua
--- If you want to use "~", you need to prefix the vault path with vim.fn.expand "~"
-local vault_location = <PATH_TO_VAULT> .. "/**.md"
-local group = vim.api.nvim_create_augroup("obsidian_cmds", { clear = true })
-vim.api.nvim_create_autocmd("BufAdd", {
-  command = "ObsidianOpen",
-  pattern = { vault_location },
-  group = group,
-  desc = "Opens the current buffer in Obsidian",
-})
-```
-
-Fair warning this `autocmd` is alil buggy in cases where you have multiple tabs open in Obsidian, as well as the potential for it to create cycles. If anyone can has an idea for addressing these issues I'm all for it, since having the link go both ways is the ideal.
+These _should_ work out of the box. But there is a bug that occurs when files are being renamed or deleted from within obsidian while the corresponding buffer is open in neovim; resulting in infinite loops. It's recommend to do file operations from within neovim while using the plugin.
 
 ## Why?
 

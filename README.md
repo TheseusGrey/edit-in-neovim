@@ -24,11 +24,3 @@ These _should_ work out of the box. But there is a bug that occurs when files ar
 ## Why?
 
 I know Obsidian has vim bindings, but I've built up my own Neovim config and customised it to my liking and that's where I like to edit text.
-
-## Future Plans
-
-A few ideas I have about where to take this plugin or at least the idea behind it beyond just fixing bugs and keeping things functioning:
-
-- Embed the neovim instance in Obsidian(?), there's already a plugin someone else made for embedding consoles/terminals you can check out [here](https://github.com/polyipseity/obsidian-terminal).
-- Make the plugin play nicely with multiple obsidian tabs, current neovim gets alil confused if there are multiple tabs open.
-- Allow other editors? I like the idea of having a more fleshed-out external editor experience for Obsidian, though having a single plugin to integrate with any/all the different editors and the different ways they talk to each other might be abit much to contain in a single plugin.

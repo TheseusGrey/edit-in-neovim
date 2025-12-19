@@ -1,4 +1,4 @@
-import { join, delimiter, normalize } from 'node:path';
+import { join, delimiter, normalize, isAbsolute } from 'node:path';
 import { accessSync, existsSync, constants } from "node:fs";
 
 import * as child_process from "node:child_process";
@@ -80,7 +80,24 @@ export function configureProcessSpawnArgs(
   return spawnOptions;
 }
 
+function verifyPath(name: string): string | undefined {
+  if (!existsSync(name)) {
+    return undefined;
+  }
+  try {
+    accessSync(name, constants.X_OK);
+    return name;
+  } catch (e) {
+    console.log(`Could not find valid binary due to: ${e}, for name: ${name}`);
+    return undefined;
+  }
+}
+
 export function searchForBinary(name: string): string | undefined {
+  if (isAbsolute(name)) {
+    return verifyPath(name);
+  }
+
   const paths = new Set<string>();
   const { PATH, USERPROFILE, LOCALAPPDATA, PROGRAMFILES, HOME } = process.env;
 
@@ -120,20 +137,14 @@ export function searchForBinary(name: string): string | undefined {
 
   }
 
-
   const allPaths = [...paths].map(p => join(p, name))
 
   for (const path of allPaths) {
-    if (!existsSync(path)) { continue }
-    try {
-      accessSync(path, constants.X_OK)
-      return path
-    } catch (e) {
-      console.log(`Could not find valid binary due to: ${e}, for name: ${name}`)
-      return undefined;
+    const verifiedPath = verifyPath(path);
+    if (verifiedPath) {
+      return verifiedPath;
     }
   }
-
 
   return undefined;
 }

@@ -28,9 +28,9 @@ export const DEFAULT_SETTINGS: EditInNeovimSettings = {
   supportedFileTypes: ["txt", "md", "css", "js", "ts", "tsx", "jsx", "json"],
   pathToBinary: "",
   appname: "",
-  tmuxSessionName: "obsidian",
+  tmuxSessionName: "edit-in-neovim",
   tmuxAttachOnStart: false,
-  tmuxKeepAliveOnQuit: false,
+  tmuxKeepAliveOnQuit: true,
 };
 
 export default class EditInNeovimSettingsTab extends PluginSettingTab {

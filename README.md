@@ -19,7 +19,7 @@ If you rely on OSC52 clipboard plugins (e.g. `nvim-osc52`), you may prefer runni
 In settings, set:
 
 - `Neovim host mode` to `tmux session`
-- `tmux session name` to whatever you want (default: `obsidian`)
+- `tmux session name` to whatever you want (default: `edit-in-neovim`)
 - (optional) enable `Attach tmux on start` to have the plugin try to open a terminal and run `tmux attach -t <session>`
 - (optional) enable `Keep tmux session alive on quit` if you want the tmux session to survive Obsidian restarts
 

@@ -24,7 +24,7 @@ export default class EditInNeovim extends Plugin {
       this.app.workspace.on("file-open", this.neovim.openFile)
     );
 
-    this.registerEvent(this.app.workspace.on("quit", this.neovim?.onObsidianQuit));
+    this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
@@ -47,12 +47,12 @@ export default class EditInNeovim extends Plugin {
     this.addCommand({
       id: "edit-in-neovim-close-instance",
       name: "Close Neovim",
-      callback: async () => this.neovim.close(),
+      callback: async () => this.neovim.close,
     });
   }
 
   onunload() {
-    this.neovim?.onObsidianQuit();
+    this.neovim?.close();
   }
 
   async loadSettings() {

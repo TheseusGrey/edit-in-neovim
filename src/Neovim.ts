@@ -3,7 +3,6 @@ import { findNvim, attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as net from "node:net";
-import { existsSync } from "node:fs";
 import { isPortInUse, searchForBinary, searchDirs, configureProcessSpawnArgs, SpawnProcessOptions } from "./utils";
 
 export default class Neovim {
@@ -12,17 +11,14 @@ export default class Neovim {
   settings: EditInNeovimSettings;
   nvimBinary: ReturnType<typeof findNvim>["matches"][number] | undefined;
   termBinary: string | undefined;
-  tmuxBinary: string | undefined;
   adapter: FileSystemAdapter;
   apiKey: string | undefined;
-  private startedVia: "headless" | "terminal" | "tmux" | "unknown" = "unknown";
 
   constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter, apiKey: string | undefined) {
     this.adapter = adapter;
     this.settings = settings;
     this.apiKey = apiKey;
     this.termBinary = settings.terminal ? searchForBinary(settings.terminal) : undefined;
-    this.tmuxBinary = searchForBinary("tmux");
     this.nvimBinary = undefined;
 
     if (settings.terminal && !this.termBinary) {
@@ -72,7 +68,7 @@ export default class Neovim {
   };
 
   async newInstance(adapter: FileSystemAdapter) {
-    if (this.settings.hostMode === "nvim" && this.process) {
+    if (this.process) {
       new Notice("edit-in-neovim:\nInstance already running", 5000);
       return;
     }
@@ -86,49 +82,13 @@ export default class Neovim {
     if (this.apiKey) extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.apiKey
     if (this.settings.appname !== "") extraEnvVars["NVIM_APPNAME"] = this.settings.appname
 
-    if (this.settings.hostMode === "tmux") {
-      await this.spawnWithTmux(adapter, extraEnvVars);
-      return;
-    }
-
     const useHeadless = !this.termBinary;
-    if (useHeadless) await this.spawnHeadless(adapter, extraEnvVars);
-    else await this.spawnWithTerminal(adapter, extraEnvVars);
-  }
 
-  private async attachToServer(): Promise<boolean> {
-    const listenAddr = this.settings.listenOn;
-    try {
-      // TCP address "host:port"
-      const colonIdx = listenAddr.lastIndexOf(':');
-      if (colonIdx > 0 && !listenAddr.startsWith("/") && !listenAddr.includes("\\\\")) {
-        const host = listenAddr.substring(0, colonIdx);
-        const port = parseInt(listenAddr.substring(colonIdx + 1));
-        if (Number.isNaN(port)) throw new Error(`Invalid listen port in: ${listenAddr}`);
-        const socket = net.createConnection({ host, port });
-        this.instance = attach({ reader: socket, writer: socket });
-      } else {
-        // Unix socket / named pipe path
-        this.instance = attach({ socket: listenAddr });
-      }
-
-      await this.instance.eval("1");
-      return true;
-    } catch (error) {
-      this.instance = undefined;
-      console.error("Neovim RPC connection failed:", error);
-      return false;
+    if (useHeadless) {
+      await this.spawnHeadless(adapter, extraEnvVars);
+    } else {
+      await this.spawnWithTerminal(adapter, extraEnvVars);
     }
-  }
-
-  private async waitForServerReady(timeoutMs = 5000): Promise<boolean> {
-    const start = Date.now();
-    // Poll attach until it succeeds or timeout.
-    while (Date.now() - start < timeoutMs) {
-      if (await this.attachToServer()) return true;
-      await new Promise((r) => setTimeout(r, 200));
-    }
-    return false;
   }
 
   private async spawnHeadless(adapter: FileSystemAdapter, extraEnvVars: Record<string, string>) {
@@ -139,7 +99,6 @@ export default class Neovim {
       Arguments: ${JSON.stringify(spawnArgs)}`);
 
     try {
-      this.startedVia = "headless";
       this.process = child_process.spawn(this.nvimBinary!.path, spawnArgs, {
         cwd: adapter.getBasePath(),
         env: { ...process.env, ...extraEnvVars },
@@ -155,13 +114,28 @@ export default class Neovim {
       console.debug(`Neovim headless process running, PID: ${this.process.pid}`);
       this.registerProcessEvents();
 
-      if (await this.waitForServerReady(7000)) {
-        console.debug("Neovim RPC connection test successful.");
-        new Notice(`Neovim server started on ${this.settings.listenOn}`, 4000);
-      } else {
-        new Notice(`Failed to connect to Neovim server at ${this.settings.listenOn}`, 7000);
-        this.close();
-      }
+      // Attach via socket after nvim starts
+      setTimeout(async () => {
+        try {
+          const listenAddr = this.settings.listenOn;
+          const colonIdx = listenAddr.lastIndexOf(':');
+          if (colonIdx > 0) {
+            const host = listenAddr.substring(0, colonIdx);
+            const port = parseInt(listenAddr.substring(colonIdx + 1));
+            const socket = net.createConnection({ host, port });
+            this.instance = attach({ reader: socket, writer: socket });
+          } else {
+            this.instance = attach({ socket: listenAddr });
+          }
+          await this.instance.eval('1');
+          console.debug("Neovim RPC connection test successful.");
+          new Notice(`Neovim server started on ${this.settings.listenOn}\nConnect with: nvim --server ${this.settings.listenOn} --remote-ui`, 5000);
+        } catch (error) {
+          console.error("Neovim RPC connection failed after spawn:", error);
+          new Notice(`Failed to connect to Neovim server: ${(error as Error).message}`, 7000);
+          this.close();
+        }
+      }, 1500);
     } catch (error) {
       console.error("Error caught during child_process.spawn call itself:", error);
       new Notice(`Error trying to spawn Neovim: ${(error as Error).message}`, 10000);
@@ -189,7 +163,6 @@ export default class Neovim {
       Options: ${JSON.stringify(spawnOptions)}`);
 
     try {
-      this.startedVia = "terminal";
       this.process = child_process.spawn(this.termBinary!, spawnOptions.spawnArgs, spawnOptions);
 
       if (!this.process || this.process.pid === undefined) {
@@ -201,13 +174,21 @@ export default class Neovim {
       console.debug(`Neovim process running, PID: ${this.process.pid}`);
       this.registerProcessEvents();
 
-      if (await this.waitForServerReady(7000)) {
-        console.debug("Neovim RPC connection test successful.");
-        new Notice("Neovim instance started and connected.", 3000);
-      } else {
-        new Notice(`Failed to connect to Neovim server at ${this.settings.listenOn}`, 7000);
-        // Don't kill the terminal immediately; user may still see error output.
-      }
+      console.debug("Attaching to Neovim process...")
+      this.instance = attach({ proc: this.process! });
+
+      setTimeout(async () => {
+        if (!this.instance) return;
+        try {
+          await this.instance.eval('1');
+          console.debug("Neovim RPC connection test successful.");
+          new Notice("Neovim instance started and connected.", 3000);
+        } catch (error) {
+          console.error("Neovim RPC connection failed after spawn:", error);
+          new Notice(`Failed to establish RPC connection: ${(error as Error).message}`, 7000);
+          this.close();
+        }
+      }, 1500);
     } catch (error) {
       console.error("Error caught during child_process.spawn call itself:", error);
       new Notice(`Error trying to spawn Neovim: ${(error as Error).message}`, 10000);
@@ -243,121 +224,6 @@ export default class Neovim {
     });
   }
 
-  private async tmuxHasSession(sessionName: string): Promise<boolean> {
-    if (!this.tmuxBinary) return false;
-    try {
-      child_process.execFileSync(this.tmuxBinary, ["has-session", "-t", sessionName], { stdio: "ignore" });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private spawnTerminalToAttachTmux(sessionName: string) {
-    if (!this.termBinary) {
-      new Notice("edit-in-neovim:\nNo terminal configured; can't auto-attach to tmux.", 5000);
-      return;
-    }
-
-    // Best-effort: most terminals on Unix support `-e <cmd...>`.
-    // We keep it simple to avoid a large matrix of terminal flags.
-    try {
-      child_process.spawn(
-        this.termBinary,
-        ["-e", this.tmuxBinary ?? "tmux", "attach", "-t", sessionName],
-        {
-        cwd: this.adapter.getBasePath(),
-        env: process.env,
-        detached: true,
-        stdio: "ignore",
-        },
-      );
-    } catch (e) {
-      console.error("Failed to spawn terminal to attach tmux:", e);
-      new Notice("edit-in-neovim:\nFailed to open terminal to attach tmux (see logs).", 7000);
-    }
-  }
-
-  private async spawnWithTmux(adapter: FileSystemAdapter, extraEnvVars: Record<string, string>) {
-    if (process.platform === "win32") {
-      new Notice("edit-in-neovim:\ntmux host mode is not supported on Windows by this plugin.", 7000);
-      return;
-    }
-
-    if (!this.tmuxBinary) {
-      new Notice("edit-in-neovim:\nCould not find tmux on PATH. Install tmux or switch host mode back to 'nvim'.", 10000);
-      return;
-    }
-
-    this.startedVia = "tmux";
-    const sessionName = (this.settings.tmuxSessionName || "edit-in-neovim").trim();
-
-    const listenAddr = this.settings.listenOn;
-    const colonIdx = listenAddr.lastIndexOf(":");
-    const portStr = colonIdx > 0 ? listenAddr.substring(colonIdx + 1) : "";
-    const isTcpListen = colonIdx > 0 && /^\d+$/.test(portStr) && !listenAddr.startsWith("/");
-    const port = isTcpListen ? portStr : undefined;
-
-    // If listenOn is TCP, make sure we won't accidentally "succeed" by connecting
-    // to some existing Neovim server that isn't tmux-hosted.
-    const sessionExists = await this.tmuxHasSession(sessionName);
-    if (port && await isPortInUse(port)) {
-      if (!sessionExists) {
-        new Notice(
-          `edit-in-neovim:\n${this.settings.listenOn} is already in use, so tmux-hosted Neovim can't bind to it.\n\nStop the existing Neovim server or choose a different listen address (a unix socket path is recommended).`,
-          12000,
-        );
-        return;
-      }
-      // Session exists; we assume it's the intended host, so just (re)connect below.
-    }
-
-    if (!sessionExists) {
-      const envPairs = Object.entries(extraEnvVars).flatMap(([k, v]) => [`${k}=${v}`]);
-      const envBin = existsSync("/usr/bin/env") ? "/usr/bin/env" : "env";
-      const args = [
-        "new-session",
-        "-d",
-        "-s",
-        sessionName,
-        "-c",
-        adapter.getBasePath(),
-        envBin,
-        ...envPairs,
-        this.nvimBinary!.path,
-        "--listen",
-        this.settings.listenOn,
-      ];
-
-      console.debug(`Starting tmux-hosted Neovim:
-        tmux: ${this.tmuxBinary}
-        args: ${JSON.stringify(args)}`);
-
-      try {
-        child_process.execFileSync(this.tmuxBinary, args, { stdio: "ignore" });
-      } catch (e) {
-        console.error("Failed to start tmux session:", e);
-        new Notice("edit-in-neovim:\nFailed to start tmux session (see logs).", 10000);
-        return;
-      }
-    }
-
-    if (this.settings.tmuxAttachOnStart) {
-      this.spawnTerminalToAttachTmux(sessionName);
-    }
-
-    if (await this.waitForServerReady(7000)) {
-      new Notice(`Neovim running in tmux session '${sessionName}'`, 4000);
-    } else {
-      // If the socket is supposed to be a filesystem path, mention it might not exist yet.
-      if (!isTcpListen && !existsSync(this.settings.listenOn)) {
-        new Notice(`edit-in-neovim:\nCouldn't connect to ${this.settings.listenOn}. If this is a socket path, it was not created.`, 10000);
-      } else {
-        new Notice(`edit-in-neovim:\nCouldn't connect to Neovim at ${this.settings.listenOn}. Is it running in tmux?`, 10000);
-      }
-    }
-  }
-
   openFile = async (file: TFile | null) => {
     if (!file) return;
     if (!this.nvimBinary?.path) return;
@@ -369,10 +235,30 @@ export default class Neovim {
 
     if (!isSupported) return;
 
+    const port = this.settings.listenOn.split(':').at(-1);
+
+    if (!(this.instance && this.process) && !port) {
+      console.debug("No known neovim instance is running")
+      return;
+    };
+
+    try {
+      if (!(port && await isPortInUse(port))) {
+        console.debug("Port is either missing, or nothing was listening on it, skipping command")
+        return;
+      }
+    } catch (error) {
+      console.error(`Error checking port ${port}: ${error.message}`)
+    }
+
     const absolutePath = this.adapter.getFullPath(file.path);
     const args = ['--server', this.settings.listenOn, '--remote', absolutePath];
 
     console.debug(`Opening ${absolutePath} in neovim`);
+
+    child_process.exec(
+      `${this.nvimBinary?.path} --server ${this.settings.listenOn} --remote '${absolutePath}'`,
+    );
 
     try {
       child_process.execFile(this.nvimBinary?.path, args, (error, stdout, stderr) => {
@@ -401,42 +287,7 @@ export default class Neovim {
 
   };
 
-  disconnect = () => {
-    // Do not attempt to quit Neovim; just drop the RPC handle.
-    this.instance = undefined;
-    this.process = undefined;
-  };
-
-  onObsidianQuit = () => {
-    if (this.startedVia === "tmux" && this.settings.tmuxKeepAliveOnQuit) {
-      this.disconnect();
-      return;
-    }
-    this.close();
-  };
-
   close = () => {
-    if (this.startedVia === "tmux") {
-      const sessionName = (this.settings.tmuxSessionName || "edit-in-neovim").trim();
-      if (!this.tmuxBinary) {
-        this.disconnect();
-        new Notice("edit-in-neovim:\nDisconnected from tmux-hosted Neovim (tmux not found).", 5000);
-        return;
-      }
-
-      try {
-        child_process.execFileSync(this.tmuxBinary, ["kill-session", "-t", sessionName], { stdio: "ignore" });
-        this.disconnect();
-        new Notice(`edit-in-neovim:\nKilled tmux session '${sessionName}'.`, 4000);
-      } catch (e) {
-        console.error("Failed to kill tmux session:", e);
-        // Even if kill failed, disconnect local handles.
-        this.disconnect();
-        new Notice(`edit-in-neovim:\nFailed to kill tmux session '${sessionName}' (see logs).`, 10000);
-      }
-      return;
-    }
-
     this.process?.kill();
     this.instance?.quit();
 

@@ -12,6 +12,22 @@ This plugin will pop open a new terminal and runs neovim inside it (You can turn
 
 After that, every time you open a file inside of Obsidian, that same file will get opened as a new buffer (or focused if already open) inside of the listening neovim instance. This effectively gives you the "linked tabs" functionality you would get inside Obsidian, but with an external editor (in this case neovim) instead.
 
+## tmux-hosted Neovim (OSC52-friendly)
+
+If you rely on OSC52 clipboard plugins (for example `nvim-osc52`), you may prefer running Neovim inside a `tmux` session so the "server side" is always a real TUI.
+
+In settings, set:
+
+- `Neovim host mode` to `tmux session`
+- `tmux session name` to whatever you want (default: `obsidian`)
+
+Optional:
+
+- enable `Attach tmux on start` to have the plugin try to open a terminal and run `tmux attach -t <session>`
+- enable `Keep tmux session alive on quit` if you want the tmux session to survive Obsidian restarts
+
+Note: if `listenOn` is a TCP address (e.g. `127.0.0.1:2006`) and something is already listening on that port, tmux-hosted Neovim won't be able to start.
+
 ## Why?
 
 I know Obsidian has vim bindings, but I've built up my own Neovim config and customised it to my liking and that's where I like to edit text.

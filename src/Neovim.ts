@@ -10,18 +10,21 @@ export default class Neovim {
   settings: EditInNeovimSettings;
   nvimBinary: ReturnType<typeof findNvim>["matches"][number] | undefined;
   termBinary: string | undefined;
+  tmuxBinary: string | undefined;
   adapter: FileSystemAdapter;
   apiKey: string | undefined;
+  private startedVia: "terminal" | "tmux" | "unknown" = "unknown";
 
   constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter, apiKey: string | undefined) {
     this.adapter = adapter;
     this.settings = settings;
     this.apiKey = apiKey;
     this.termBinary = searchForBinary(settings.terminal);
+    this.tmuxBinary = searchForBinary("tmux");
     this.nvimBinary = undefined;
 
     if (!this.termBinary) {
-      console.warn(`Could find binary for ${settings.terminal}, double check it's on your PATH`)
+      console.warn(`Could not find binary for ${settings.terminal}, double check it's on your PATH`)
     }
 
     if (this.settings.pathToBinary) {
@@ -67,6 +70,20 @@ export default class Neovim {
   };
 
   async newInstance(adapter: FileSystemAdapter) {
+    if (!this.nvimBinary || this.nvimBinary?.path === "") {
+      new Notice("No path to valid nvim binary has been found, skipping command", 5000)
+      return;
+    }
+
+    const extraEnvVars: Record<string, string> = {}
+    if (this.apiKey) extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.apiKey
+    if (this.settings.appname !== "") extraEnvVars["NVIM_APPNAME"] = this.settings.appname
+
+    if (this.settings.hostMode === "tmux") {
+      await this.spawnWithTmux(adapter, extraEnvVars);
+      return;
+    }
+
     if (this.process) {
       new Notice("edit-in-neovim:\nInstance already running", 5000);
       return;
@@ -76,15 +93,6 @@ export default class Neovim {
       new Notice("Terminal undefined, skipping command", 5000)
       return;
     }
-
-    if (!this.nvimBinary || this.nvimBinary?.path === "") {
-      new Notice("No path to valid nvim binary has been found, skipping command", 5000)
-      return;
-    }
-
-    const extraEnvVars: Record<string, string> = {}
-    if (this.apiKey) extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.apiKey
-    if (this.settings.appname !== "") extraEnvVars["NVIM_APPNAME"] = this.settings.appname
 
     const terminalName = this.termBinary.split('\\').pop()?.toLowerCase() || '';
     const defaultSpawnOptions: SpawnProcessOptions = {
@@ -104,6 +112,7 @@ export default class Neovim {
       Options: ${JSON.stringify(spawnOptions)}`);
 
     try {
+      this.startedVia = "terminal";
       this.process = child_process.spawn(this.termBinary, spawnOptions.spawnArgs, spawnOptions);
 
       if (!this.process || this.process.pid === undefined) {
@@ -161,6 +170,112 @@ export default class Neovim {
       this.instance = undefined;
     }
 
+  }
+
+  private async tmuxHasSession(sessionName: string): Promise<boolean> {
+    if (!this.tmuxBinary) return false;
+    try {
+      child_process.execFileSync(this.tmuxBinary, ["has-session", "-t", sessionName], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private spawnTerminalToAttachTmux(sessionName: string) {
+    if (!this.termBinary) return;
+    if (!this.tmuxBinary) return;
+    if (process.platform === "win32") return;
+
+    // Best-effort: most terminals on Unix support `-e <cmd...>`.
+    try {
+      child_process.spawn(
+        this.termBinary,
+        ["-e", this.tmuxBinary, "attach", "-t", sessionName],
+        {
+          cwd: this.adapter.getBasePath(),
+          env: process.env,
+          detached: true,
+          stdio: "ignore",
+        },
+      );
+    } catch (e) {
+      console.error("Failed to spawn terminal to attach tmux:", e);
+    }
+  }
+
+  private async spawnWithTmux(adapter: FileSystemAdapter, extraEnvVars: Record<string, string>) {
+    if (process.platform === "win32") {
+      new Notice("edit-in-neovim:\ntmux host mode is not supported on Windows by this plugin.", 7000);
+      return;
+    }
+
+    if (!this.tmuxBinary) {
+      new Notice("edit-in-neovim:\nCould not find tmux on PATH. Install tmux or switch host mode back to 'nvim'.", 10000);
+      return;
+    }
+
+    const sessionName = (this.settings.tmuxSessionName || "obsidian").trim();
+    if (!sessionName) {
+      new Notice("edit-in-neovim:\nInvalid tmux session name.", 7000);
+      return;
+    }
+
+    const exists = await this.tmuxHasSession(sessionName);
+    if (exists) {
+      new Notice(`edit-in-neovim:\ntmux session '${sessionName}' already exists`, 3000);
+      if (this.settings.tmuxAttachOnStart) this.spawnTerminalToAttachTmux(sessionName);
+      this.startedVia = "tmux";
+      return;
+    }
+
+    // If listenOn is TCP and already in use, tmux-hosted nvim will fail to bind.
+    const listenAddr = this.settings.listenOn;
+    const colonIdx = listenAddr.lastIndexOf(":");
+    const portStr = colonIdx > 0 ? listenAddr.substring(colonIdx + 1) : "";
+    const isTcpListen = colonIdx > 0 && /^\d+$/.test(portStr) && !listenAddr.startsWith("/");
+    if (isTcpListen) {
+      try {
+        if (await isPortInUse(portStr)) {
+          new Notice(
+            `edit-in-neovim:\n${this.settings.listenOn} is already in use, so tmux-hosted Neovim can't bind to it.\n\nStop the existing Neovim server or choose a different listen address.`,
+            12000,
+          );
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to check port:", e);
+      }
+    }
+
+    const envPairs = Object.entries(extraEnvVars).flatMap(([k, v]) => [`${k}=${v}`]);
+    const args = [
+      "new-session",
+      "-d",
+      "-s",
+      sessionName,
+      "-c",
+      adapter.getBasePath(),
+      "env",
+      ...envPairs,
+      this.nvimBinary!.path,
+      "--listen",
+      this.settings.listenOn,
+    ];
+
+    console.debug(`Starting tmux-hosted Neovim:
+      tmux: ${this.tmuxBinary}
+      args: ${JSON.stringify(args)}`);
+
+    try {
+      child_process.execFileSync(this.tmuxBinary, args, { stdio: "ignore" });
+      this.startedVia = "tmux";
+      new Notice(`Neovim running in tmux session '${sessionName}'`, 4000);
+      if (this.settings.tmuxAttachOnStart) this.spawnTerminalToAttachTmux(sessionName);
+    } catch (e) {
+      console.error("Failed to start tmux session:", e);
+      new Notice("edit-in-neovim:\nFailed to start tmux session (see logs).", 10000);
+    }
   }
 
   openFile = async (file: TFile | null) => {
@@ -226,7 +341,32 @@ export default class Neovim {
 
   };
 
+  onObsidianQuit = () => {
+    if (this.startedVia === "tmux" && this.settings.tmuxKeepAliveOnQuit) {
+      // Intentionally do not kill the tmux session.
+      return;
+    }
+    this.close();
+  };
+
   close = () => {
+    if (this.startedVia === "tmux") {
+      const sessionName = (this.settings.tmuxSessionName || "obsidian").trim();
+      if (!this.tmuxBinary) {
+        new Notice("edit-in-neovim:\nDisconnected from tmux-hosted Neovim (tmux not found).", 5000);
+        return;
+      }
+      try {
+        child_process.execFileSync(this.tmuxBinary, ["kill-session", "-t", sessionName], { stdio: "ignore" });
+        new Notice(`edit-in-neovim:\nKilled tmux session '${sessionName}'.`, 4000);
+      } catch (e) {
+        console.error("Failed to kill tmux session:", e);
+        new Notice(`edit-in-neovim:\nFailed to kill tmux session '${sessionName}' (see logs).`, 10000);
+      }
+      this.startedVia = "unknown";
+      return;
+    }
+
     this.process?.kill();
     this.instance?.quit();
 

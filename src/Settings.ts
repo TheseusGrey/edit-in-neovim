@@ -3,20 +3,20 @@ import EditInNeovim from "./main";
 import Neovim from "./Neovim";
 
 export interface EditInNeovimSettings {
-  terminal: string;
   listenOn: string;
   openNeovimOnLoad: boolean;
   supportedFileTypes: string[];
-  pathToBinary: string;
+  binaryPath: string;
+  terminalPath: string;
   appname: string;
 }
 
 export const DEFAULT_SETTINGS: EditInNeovimSettings = {
-  terminal: process.env.TERMINAL || "alacritty",
+  terminalPath: process.env.TERMINAL || "alacritty",
   listenOn: "127.0.0.1:2006",
   openNeovimOnLoad: true,
   supportedFileTypes: ["txt", "md", "css", "js", "ts", "tsx", "jsx", "json"],
-  pathToBinary: "",
+  binaryPath: "",
   appname: "",
 };
 
@@ -33,67 +33,6 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
-
-    new Setting(containerEl)
-      .setName("Terminal")
-      .setDesc(
-        "Which terminal emulator should I try and use for the neovim instance?",
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("E.g. alacritty, kitty, wezterm...")
-          .setValue(this.plugin.settings.terminal)
-          .onChange(async (value) => {
-            this.plugin.settings.terminal = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Neovim server location")
-      .setDesc(
-        "The Neovim instance will be spawned using --listen and needs a socket or IP:PORT (not sure if sockets work so use at your own risk)",
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("127.0.0.1:2006")
-          .setValue(this.plugin.settings.listenOn)
-          .onChange(async (value) => {
-            this.plugin.settings.listenOn = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Path to Neovim binary")
-      .setDesc(
-        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead. (requires reload)",
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("/path/to/nvim-bin/nvim")
-          .setValue(this.plugin.settings.pathToBinary)
-          .onChange(async (value) => {
-            this.plugin.settings.pathToBinary = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("NVIM_APPNAME")
-      .setDesc(
-        "If you have a specific neovim distro you'd like to use (lazyvim for example), leave blank to use your default neovim config.",
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("lazyvim, my_writing_config, etc.")
-          .setValue(this.plugin.settings.appname)
-          .onChange(async (value) => {
-            this.plugin.settings.appname = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
 
     new Setting(containerEl)
       .setName("Open on startup")
@@ -123,5 +62,66 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Terminal Path")
+      .setDesc(
+        "Which terminal emulator should I try and use for the neovim instance?",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("E.g. /usr/bin/kitty, /Applications/iTerm.app/Contents/MacOS/iTerm2...")
+          .setValue(this.plugin.settings.terminalPath)
+          .onChange(async (value) => {
+            this.plugin.settings.terminalPath = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Path to Neovim binary")
+      .setDesc(
+        "Manual override for detecting nvim binary. It's recommended you add nvim to your PATH instead. (requires reload)",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("/path/to/nvim-bin/nvim")
+          .setValue(this.plugin.settings.binaryPath)
+          .onChange(async (value) => {
+            this.plugin.settings.binaryPath = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("NVIM_APPNAME")
+      .setDesc(
+        "If you have a specific neovim distro you'd like to use (lazyvim for example), leave blank to use your default neovim config.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("lazyvim, my_writing_config, etc.")
+          .setValue(this.plugin.settings.appname)
+          .onChange(async (value) => {
+            this.plugin.settings.appname = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Neovim server location")
+      .setDesc(
+        "The Neovim instance will be spawned using --listen and needs a socket or IP:PORT (not sure if sockets work so use at your own risk)",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("127.0.0.1:2006")
+          .setValue(this.plugin.settings.listenOn)
+          .onChange(async (value) => {
+            this.plugin.settings.listenOn = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
   }
 }

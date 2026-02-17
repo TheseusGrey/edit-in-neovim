@@ -17,15 +17,15 @@ export default class Neovim {
     this.adapter = adapter;
     this.settings = settings;
     this.apiKey = apiKey;
-    this.termBinary = searchForBinary(settings.terminal);
+    this.termBinary = searchForBinary(settings.terminalPath);
     this.nvimBinary = undefined;
 
     if (!this.termBinary) {
-      console.warn(`Could find binary for ${settings.terminal}, double check it's on your PATH`)
+      console.warn(`Could find binary for ${settings.terminalPath}, double check it's on your PATH`)
     }
 
-    if (this.settings.pathToBinary) {
-      this.nvimBinary = { path: this.settings.pathToBinary, nvimVersion: "manual_path" };
+    if (this.settings.binaryPath) {
+      this.nvimBinary = { path: this.settings.binaryPath, nvimVersion: "manual_path" };
       console.log(`Neovim Information:
   - Term Path: ${this.termBinary || "NOT FOUND"}
   - Nvim Path: ${this.nvimBinary.path}
@@ -160,7 +160,6 @@ export default class Neovim {
       this.process = undefined;
       this.instance = undefined;
     }
-
   }
 
   openFile = async (file: TFile | null) => {

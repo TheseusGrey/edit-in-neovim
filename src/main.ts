@@ -46,7 +46,7 @@ export default class EditInNeovim extends Plugin {
     if (this.settings.openNeovimOnLoad) this.host.newInstance(this.neovim, adapter);
 
     this.registerEvent(
-      this.app.workspace.on("file-open", this.neovim.openFile)
+      this.app.workspace.on("file-open", f => this.neovim.openFile(f, this.host))
     );
 
     this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
@@ -72,7 +72,7 @@ export default class EditInNeovim extends Plugin {
     this.addCommand({
       id: "edit-in-neovim-close-instance",
       name: "Close Neovim",
-      callback: async () => this.neovim.close,
+      callback: async () => this.host.close,
     });
 
     this.addCommand({
@@ -85,7 +85,8 @@ export default class EditInNeovim extends Plugin {
   }
 
   onunload() {
-    this.neovim?.close();
+    this.host.close();
+    this.neovim.close();
   }
 
   async loadSettings() {

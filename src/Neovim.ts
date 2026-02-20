@@ -106,7 +106,7 @@ export default class Neovim {
 
   async openFile(file: TFile | null, host: Host) {
     if (!file) return;
-    if (!this.nvimBinary?.path) return;
+    if (!this.nvimBinary) return;
 
     const isExcalidrawMd = file.extension === "md" && file.path.endsWith(".excalidraw.md");
     let isSupported = this.settings.supportedFileTypes.includes(file.extension);

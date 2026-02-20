@@ -5,6 +5,7 @@ import Neovim from "./Neovim";
 export interface EditInNeovimSettings {
   listenOn: string;
   openNeovimOnLoad: boolean;
+  headless: boolean;
   supportedFileTypes: string[];
   binaryPath: string;
   terminalPath: string;
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: EditInNeovimSettings = {
   terminalPath: process.env.TERMINAL || "alacritty",
   listenOn: "127.0.0.1:2006",
   openNeovimOnLoad: true,
+  headless: false,
   supportedFileTypes: ["txt", "md", "css", "js", "ts", "tsx", "jsx", "json"],
   binaryPath: "",
   appname: "",
@@ -45,6 +47,20 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Headless")
+      .setDesc("Makes the instance used by the plugin headless, useful for remote connections.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.headless)
+          .onChange(async (value) => {
+            this.plugin.settings.headless = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+
 
     new Setting(containerEl)
       .setName("Supported file types")

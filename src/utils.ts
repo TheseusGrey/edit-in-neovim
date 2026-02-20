@@ -5,6 +5,7 @@ import { Notice } from "obsidian";
 
 export type SpawnProcessOptions = child_process.SpawnOptionsWithoutStdio & {
   spawnArgs: string[];
+  headless?: boolean;
 };
 
 function notifyDuration(msg: string) {

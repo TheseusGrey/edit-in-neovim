@@ -7,6 +7,8 @@ export class Windows extends Host {
     neovimPath: string,
     defaults: SpawnProcessOptions,
   ): SpawnProcessOptions {
+    if (defaults.headless) return this.configureHeadlessArgs(defaults);
+
     const terminalName =
       this.hostBinary?.split("\\").pop()?.toLowerCase() || "";
 

@@ -11,6 +11,7 @@ export class Linux extends Host {
     console.debug(
       `edit-in-neovim:\nProcess spawn config for Linux: ${JSON.stringify(defaults, null, 2)}`,
     );
+    if (defaults.headless) return this.configureHeadlessArgs(defaults);
     return {
       ...defaults,
       spawnArgs: ["-e", neovimPath, "--listen", this.settings.listenOn],

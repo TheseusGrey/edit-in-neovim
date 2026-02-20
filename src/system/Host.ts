@@ -1,3 +1,5 @@
+
+import * as os from "node:os";
 // @ts-ignore
 import systeminformation from "systeminformation";
 
@@ -96,13 +98,13 @@ export default class Host {
 
     try {
       this.process = child_process.spawn(
-        this.hostBinary,
+        this.settings.headless ? neovim.nvimBinary.path : this.hostBinary,
         spawnOptions.spawnArgs,
         spawnOptions,
       );
 
       if (!this.process || this.process.pid === undefined) {
-        notify("Failed to create Neovim process", 5000);
+        notify("Failed to create host process", 5000);
         this.process = undefined;
         return;
       }
@@ -179,6 +181,16 @@ export default class Host {
   ): SpawnProcessOptions {
     notify(`edit-in-neovim: Unrecognised OS (${platform})`, 10000);
     throw new Error(`Unable to get search paths, unrecognised OS: ${platform}`);
+  }
+
+  configureHeadlessArgs(
+    defaults: SpawnProcessOptions,
+  ): SpawnProcessOptions {
+    return {
+      ...defaults,
+      spawnArgs: ["--headless", "--listen", this.settings.listenOn],
+      shell: os.userInfo().shell || true,
+    };
   }
 
   getSearchPaths(): Set<string> {

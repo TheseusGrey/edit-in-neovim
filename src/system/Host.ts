@@ -55,7 +55,7 @@ export default class Host {
 
   async newInstance(neovim: Neovim, adapter: FileSystemAdapter) {
     if (this.process) {
-      notify("edit-in-neovim:\nInstance already running", 5000);
+      notify("Instance already running", 5000);
       return;
     }
 
@@ -100,7 +100,7 @@ export default class Host {
       console.debug(`Neovim process running, PID: ${this.process.pid}`);
 
       this.process?.on("error", (err) => {
-        notify("edit-in-neovim:\nNeovim ran into a error, see logs for details");
+        notify("Neovim ran into a error, see logs for details");
         console.error(`Neovim process ran into an error: ${JSON.stringify(err, null, 2)}`);
         this.process = undefined;
         neovim.close();
@@ -127,9 +127,9 @@ export default class Host {
       console.debug("Attaching to Neovim process...")
 
       setTimeout(async () => {
-        if (!neovim) return;
+        if (!neovim.nvimBinary) return;
         try {
-          // await neovim.eval('1');
+          await neovim.instance?.eval('1');
           console.debug("Neovim RPC connection test successful.");
           notify("Neovim instance started and connected.", 3000);
         } catch (error) {
@@ -169,7 +169,7 @@ export default class Host {
     this.process?.kill();
     this.process = undefined;
 
-    notify("edit-in-neovim:\nClosing host process.");
+    notify("Closing host process.");
   };
 }
 

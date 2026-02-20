@@ -12,11 +12,9 @@ type NeovimOptions = {
 
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
-  process: ReturnType<(typeof child_process)["spawn"]> | undefined;
   settings: EditInNeovimSettings;
   nvimBinary: ReturnType<typeof findNvim>["matches"][number] | undefined;
   adapter: FileSystemAdapter;
-  apiKey: string | undefined;
 
   constructor(settings: EditInNeovimSettings, adapter: FileSystemAdapter, options?: NeovimOptions) {
     this.adapter = adapter;
@@ -56,7 +54,7 @@ export default class Neovim {
     if (this.instance) return;
 
     try {
-      if (this.process) {
+      if (host.process) {
         this.instance = attach({ proc: host.process })
         console.debug("Connecting to plugin managed process")
 
@@ -162,6 +160,6 @@ export default class Neovim {
     this.instance?.quit();
     this.instance = undefined;
 
-    notify("edit-in-neovim:\nNeovim instance closed.", 3000);
+    notify("Neovim connection closed.", 3000);
   };
 }

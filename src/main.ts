@@ -41,8 +41,6 @@ export default class EditInNeovim extends Plugin {
       { searchPaths: Array.from(this.host.getSearchPaths()) }
     );
 
-
-
     if (this.settings.openNeovimOnLoad) this.host.newInstance(this.neovim, adapter);
 
     this.registerEvent(
@@ -51,7 +49,6 @@ export default class EditInNeovim extends Plugin {
 
     this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
 
-    // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
 
     // TODO: Find a way to open a file here that doesn't rely on fixed wait time
@@ -72,7 +69,12 @@ export default class EditInNeovim extends Plugin {
     this.addCommand({
       id: "edit-in-neovim-close-instance",
       name: "Close Neovim",
-      callback: async () => this.host.close,
+      callback: async () => {
+        if (this.host.process) {
+          this.host.close();
+          this.neovim.close();
+        }
+      },
     });
 
     this.addCommand({

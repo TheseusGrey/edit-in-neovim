@@ -25,27 +25,36 @@ export default class EditInNeovim extends Plugin {
 
     switch (platform) {
       case "darwin":
-        this.host = new MacOS(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        this.host = new MacOS(adapter, this.settings, {
+          restAPIKey: this.restAPIEnabled(),
+        });
         break;
       case "win32":
-        this.host = new Windows(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        this.host = new Windows(adapter, this.settings, {
+          restAPIKey: this.restAPIEnabled(),
+        });
         break;
       case "linux":
-        this.host = new Linux(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        this.host = new Linux(adapter, this.settings, {
+          restAPIKey: this.restAPIEnabled(),
+        });
         break;
     }
 
-    this.neovim = new Neovim(
-      this.settings,
-      adapter,
-      { searchPaths: Array.from(this.host.getSearchPaths()) }
-    );
+    this.neovim = new Neovim(this.settings, adapter, {
+      searchPaths: Array.from(this.host.getSearchPaths()),
+    });
 
-    if (this.settings.openNeovimOnLoad) this.host.newInstance(this.neovim, adapter);
+    if (this.settings.openNeovimOnLoad)
+      this.host.newInstance(this.neovim, adapter);
 
     this.registerEvent(
-      this.app.workspace.on("file-open", f => this.neovim.openFile(f, this.host))
+      this.app.workspace.on("file-open", (f) =>
+        this.neovim.openFile(f, this.host),
+      ),
     );
+
+    this.registerEvent(this.app.workspace.on("quit", (f) => this.onunload()));
 
     this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
 
@@ -60,9 +69,13 @@ export default class EditInNeovim extends Plugin {
           .newInstance(this.neovim, adapter)
           .then(() =>
             setTimeout(
-              () => this.neovim.openFile(this.app.workspace.getActiveFile(), this.host),
-              1000
-            )
+              () =>
+                this.neovim.openFile(
+                  this.app.workspace.getActiveFile(),
+                  this.host,
+                ),
+              1000,
+            ),
           ),
     });
 
@@ -83,7 +96,6 @@ export default class EditInNeovim extends Plugin {
       callback: async () =>
         this.neovim.openFile(this.app.workspace.getActiveFile(), this.host),
     });
-
   }
 
   onunload() {
@@ -103,7 +115,9 @@ export default class EditInNeovim extends Plugin {
     const found = findNvim({ orderBy: "desc" });
 
     if (found.matches.length === 0) {
-      notify("No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH");
+      notify(
+        "No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH",
+      );
     }
 
     if (!(this.app.vault.adapter instanceof FileSystemAdapter)) {
@@ -113,10 +127,10 @@ export default class EditInNeovim extends Plugin {
 
   restAPIEnabled(): string | undefined {
     // @ts-ignore
-    const plugins = this.app.plugins.plugins
+    const plugins = this.app.plugins.plugins;
     if (Object.keys(plugins).contains("obsidian-local-rest-api")) {
-      return plugins["obsidian-local-rest-api"].settings.apiKey
+      return plugins["obsidian-local-rest-api"].settings.apiKey;
     }
-    return undefined
+    return undefined;
   }
 }

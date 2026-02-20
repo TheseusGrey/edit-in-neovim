@@ -4,9 +4,13 @@ import { SpawnProcessOptions } from "src/utils";
 import Host from "./Host";
 
 export class Linux extends Host {
-
-  configureHostArgs(neovimPath: string, defaults: SpawnProcessOptions): SpawnProcessOptions {
-    console.debug(`edit-in-neovim:\nProcess spawn config for Linux: ${JSON.stringify(defaults, null, 2)}`)
+  configureHostArgs(
+    neovimPath: string,
+    defaults: SpawnProcessOptions,
+  ): SpawnProcessOptions {
+    console.debug(
+      `edit-in-neovim:\nProcess spawn config for Linux: ${JSON.stringify(defaults, null, 2)}`,
+    );
     return {
       ...defaults,
       spawnArgs: ["-e", neovimPath, "--listen", this.settings.listenOn],
@@ -18,7 +22,7 @@ export class Linux extends Host {
     const paths = new Set<string>();
     const { PATH, HOME } = process.env;
 
-    PATH?.split(delimiter).forEach(p => paths.add(normalize(p)));
+    PATH?.split(delimiter).forEach((p) => paths.add(normalize(p)));
 
     if (HOME) {
       paths.add(normalize(`${HOME}/bin`));

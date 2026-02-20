@@ -10,12 +10,12 @@ import { platform } from "node:process";
 import { isAbsolute, join } from "node:path";
 
 type HostOptions = {
-  restAPIKey?: string,
+  restAPIKey?: string;
 };
 
 type SpawnProcessOptions = child_process.SpawnOptionsWithoutStdio & {
-  spawnArgs: string[],
-}
+  spawnArgs: string[];
+};
 
 export default class Host {
   adapter: FileSystemAdapter;
@@ -25,14 +25,15 @@ export default class Host {
   processOptions: SpawnProcessOptions;
   options: HostOptions | undefined;
 
-
-
-  constructor(adapter: FileSystemAdapter, settings: EditInNeovimSettings, options?: HostOptions) {
+  constructor(
+    adapter: FileSystemAdapter,
+    settings: EditInNeovimSettings,
+    options?: HostOptions,
+  ) {
     this.adapter = adapter;
     this.settings = settings;
     this.options = options;
     this.hostBinary = this.searchForBinary(settings.terminalPath);
-
   }
 
   searchForBinary(name: string): string | undefined {
@@ -41,7 +42,7 @@ export default class Host {
     }
 
     const paths = this.getSearchPaths();
-    const allPaths = [...paths].map(p => join(p, name))
+    const allPaths = [...paths].map((p) => join(p, name));
 
     for (const path of allPaths) {
       const verifiedPath = verifyPath(path);
@@ -60,19 +61,24 @@ export default class Host {
     }
 
     if (!this.hostBinary) {
-      notify("Terminal undefined, skipping", 5000)
+      notify("Terminal undefined, skipping", 5000);
       return;
     }
 
     // Replace with proper check
     if (!neovim.nvimBinary) {
-      notify("No path to valid nvim binary has been found, skipping command", 5000)
+      notify(
+        "No path to valid nvim binary has been found, skipping command",
+        5000,
+      );
       return;
     }
 
-    const extraEnvVars: Record<string, string> = {}
-    if (this.options?.restAPIKey) extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.options.restAPIKey
-    if (this.settings.appname !== "") extraEnvVars["NVIM_APPNAME"] = this.settings.appname
+    const extraEnvVars: Record<string, string> = {};
+    if (this.options?.restAPIKey)
+      extraEnvVars["OBSIDIAN_REST_API_KEY"] = this.options.restAPIKey;
+    if (this.settings.appname !== "")
+      extraEnvVars["NVIM_APPNAME"] = this.settings.appname;
 
     const spawnOptions = this.configureHostArgs(neovim.nvimBinary?.path, {
       spawnArgs: [],
@@ -80,7 +86,7 @@ export default class Host {
       env: { ...process.env, ...extraEnvVars },
       shell: false,
       detached: false,
-    })
+    });
 
     console.debug(`Attempting to spawn process:
       Platform: ${process.platform}
@@ -89,7 +95,11 @@ export default class Host {
       Options: ${JSON.stringify(spawnOptions)}`);
 
     try {
-      this.process = child_process.spawn(this.hostBinary, spawnOptions.spawnArgs, spawnOptions);
+      this.process = child_process.spawn(
+        this.hostBinary,
+        spawnOptions.spawnArgs,
+        spawnOptions,
+      );
 
       if (!this.process || this.process.pid === undefined) {
         notify("Failed to create Neovim process", 5000);
@@ -101,7 +111,9 @@ export default class Host {
 
       this.process?.on("error", (err) => {
         notify("Neovim ran into a error, see logs for details");
-        console.error(`Neovim process ran into an error: ${JSON.stringify(err, null, 2)}`);
+        console.error(
+          `Neovim process ran into an error: ${JSON.stringify(err, null, 2)}`,
+        );
         this.process = undefined;
         neovim.close();
       });
@@ -124,12 +136,12 @@ export default class Host {
         neovim.close();
       });
 
-      console.debug("Attaching to Neovim process...")
+      console.debug("Attaching to Neovim process...");
 
       setTimeout(async () => {
         if (!neovim.nvimBinary) return;
         try {
-          await neovim.instance?.eval('1');
+          await neovim.instance?.eval("1");
           console.debug("Neovim RPC connection test successful.");
           notify("Neovim instance started and connected.", 3000);
         } catch (error) {
@@ -139,7 +151,10 @@ export default class Host {
         }
       }, 1500);
     } catch (error) {
-      console.error("Error caught during child_process.spawn call itself:", error);
+      console.error(
+        "Error caught during child_process.spawn call itself:",
+        error,
+      );
       notify(`Error trying to spawn Neovim: ${error.message}`, 10000);
       this.process = undefined;
       neovim.close();
@@ -149,16 +164,22 @@ export default class Host {
   async isPortInUse(port: string) {
     const networkConnections = await systeminformation.networkConnections();
 
-    return networkConnections.find((networkConnection: { localPort: string; }): boolean => {
-      return networkConnection.localPort === String(port);
-    }) !== undefined;
+    return (
+      networkConnections.find(
+        (networkConnection: { localPort: string }): boolean => {
+          return networkConnection.localPort === String(port);
+        },
+      ) !== undefined
+    );
   }
 
-  configureHostArgs(_neovimPath: string, _defaults: SpawnProcessOptions): SpawnProcessOptions {
+  configureHostArgs(
+    _neovimPath: string,
+    _defaults: SpawnProcessOptions,
+  ): SpawnProcessOptions {
     notify(`edit-in-neovim: Unrecognised OS (${platform})`, 10000);
     throw new Error(`Unable to get search paths, unrecognised OS: ${platform}`);
   }
-
 
   getSearchPaths(): Set<string> {
     notify(`edit-in-neovim: Unrecognised OS (${platform})`, 10000);
@@ -172,4 +193,3 @@ export default class Host {
     notify("Closing host process.");
   };
 }
-

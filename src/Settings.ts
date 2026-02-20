@@ -70,7 +70,9 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
       )
       .addText((text) =>
         text
-          .setPlaceholder("E.g. /usr/bin/kitty, /Applications/iTerm.app/Contents/MacOS/iTerm2...")
+          .setPlaceholder(
+            "E.g. /usr/bin/kitty, /Applications/iTerm.app/Contents/MacOS/iTerm2...",
+          )
           .setValue(this.plugin.settings.terminalPath)
           .onChange(async (value) => {
             this.plugin.settings.terminalPath = value;
@@ -122,6 +124,5 @@ export default class EditInNeovimSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
-
   }
 }

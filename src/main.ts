@@ -56,8 +56,6 @@ export default class EditInNeovim extends Plugin {
 
     this.registerEvent(this.app.workspace.on("quit", () => this.onunload()));
 
-    this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
-
     this.addSettingTab(new EditInNeovimSettingsTab(this.app, this));
 
     // TODO: Find a way to open a file here that doesn't rely on fixed wait time

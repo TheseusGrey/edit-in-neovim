@@ -54,7 +54,7 @@ export default class EditInNeovim extends Plugin {
       ),
     );
 
-    this.registerEvent(this.app.workspace.on("quit", (f) => this.onunload()));
+    this.registerEvent(this.app.workspace.on("quit", () => this.onunload()));
 
     this.registerEvent(this.app.workspace.on("quit", this.neovim?.close));
 

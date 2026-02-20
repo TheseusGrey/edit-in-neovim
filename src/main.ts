@@ -1,24 +1,49 @@
-import { FileSystemAdapter, Plugin, Notice } from "obsidian";
+import { FileSystemAdapter, Plugin } from "obsidian";
 import { findNvim } from "neovim";
 import Neovim from "./Neovim";
 import EditInNeovimSettingsTab, {
   EditInNeovimSettings,
   DEFAULT_SETTINGS,
 } from "./Settings";
+import { notify } from "./utils";
+import Host from "./system/Host";
+import { platform } from "process";
+import { MacOS } from "./system/Mac";
+import { Windows } from "./system/Windows";
+import { Linux } from "./system/Linux";
 
 export default class EditInNeovim extends Plugin {
   settings: EditInNeovimSettings;
   neovim: Neovim;
+  host: Host;
 
   async onload() {
     await this.loadSettings();
     this.pluginChecks();
 
     const adapter = this.app.vault.adapter as FileSystemAdapter;
-    this.neovim = new Neovim(this.settings, adapter, this.restAPIEnabled());
+
+    switch (platform) {
+      case "darwin":
+        this.host = new MacOS(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        break;
+      case "win32":
+        this.host = new Windows(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        break;
+      case "linux":
+        this.host = new Linux(adapter, this.settings, { restAPIKey: this.restAPIEnabled() });
+        break;
+    }
+
+    this.neovim = new Neovim(
+      this.settings,
+      adapter,
+      { searchPaths: Array.from(this.host.getSearchPaths()) }
+    );
 
 
-    if (this.settings.openNeovimOnLoad) this.neovim.newInstance(adapter);
+
+    if (this.settings.openNeovimOnLoad) this.host.newInstance(this.neovim, adapter);
 
     this.registerEvent(
       this.app.workspace.on("file-open", this.neovim.openFile)
@@ -34,11 +59,11 @@ export default class EditInNeovim extends Plugin {
       id: "edit-in-neovim-new-instance",
       name: "Open Neovim",
       callback: async () =>
-        await this.neovim
-          .newInstance(adapter)
+        await this.host
+          .newInstance(this.neovim, adapter)
           .then(() =>
             setTimeout(
-              () => this.neovim.openFile(this.app.workspace.getActiveFile()),
+              () => this.neovim.openFile(this.app.workspace.getActiveFile(), this.host),
               1000
             )
           ),
@@ -49,6 +74,14 @@ export default class EditInNeovim extends Plugin {
       name: "Close Neovim",
       callback: async () => this.neovim.close,
     });
+
+    this.addCommand({
+      id: "edit-in-neovim-open-file",
+      name: "Open File",
+      callback: async () =>
+        this.neovim.openFile(this.app.workspace.getActiveFile(), this.host),
+    });
+
   }
 
   onunload() {
@@ -67,17 +100,11 @@ export default class EditInNeovim extends Plugin {
     const found = findNvim({ orderBy: "desc" });
 
     if (found.matches.length === 0) {
-      new Notice(
-        "Edit In Neovim: No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH",
-        5000
-      );
+      notify("No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH");
     }
 
     if (!(this.app.vault.adapter instanceof FileSystemAdapter)) {
-      new Notice(
-        "Edit In Neovim: unknown adapter, unable to access vault files",
-        5000
-      );
+      notify("unknown adapter, unable to access vault files");
     }
   }
 

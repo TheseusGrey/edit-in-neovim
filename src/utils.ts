@@ -2,6 +2,11 @@ import { accessSync, existsSync, constants } from "node:fs";
 
 import * as child_process from "node:child_process";
 import { Notice } from "obsidian";
+import { findNvim } from "neovim";
+
+type NvimBinaryMatch = ReturnType<typeof findNvim>["matches"][number];
+
+export type { NvimBinaryMatch };
 
 export type SpawnProcessOptions = child_process.SpawnOptionsWithoutStdio & {
   spawnArgs: string[];
@@ -26,4 +31,19 @@ export function verifyPath(name: string): string | undefined {
     console.log(`Could not find valid binary due to: ${e}, for name: ${name}`);
     return undefined;
   }
+}
+
+export function resolveNvimBinary(
+  binaryPath: string,
+  searchPaths?: string[],
+): NvimBinaryMatch | undefined {
+  if (binaryPath) {
+    if (verifyPath(binaryPath)) {
+      return { path: binaryPath, nvimVersion: "manual_path" };
+    }
+    return undefined;
+  }
+
+  const found = findNvim({ orderBy: "desc", paths: searchPaths });
+  return found.matches.length > 0 ? found.matches[0] : undefined;
 }

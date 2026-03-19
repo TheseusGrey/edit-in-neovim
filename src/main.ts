@@ -1,11 +1,10 @@
 import { FileSystemAdapter, Plugin } from "obsidian";
-import { findNvim } from "neovim";
 import Neovim from "./Neovim";
 import EditInNeovimSettingsTab, {
   EditInNeovimSettings,
   DEFAULT_SETTINGS,
 } from "./Settings";
-import { notify } from "./utils";
+import { notify, resolveNvimBinary } from "./utils";
 import Host from "./system/Host";
 import { platform } from "process";
 import { MacOS } from "./system/Mac";
@@ -19,7 +18,6 @@ export default class EditInNeovim extends Plugin {
 
   async onload() {
     await this.loadSettings();
-    this.pluginChecks();
 
     const adapter = this.app.vault.adapter as FileSystemAdapter;
 
@@ -41,11 +39,13 @@ export default class EditInNeovim extends Plugin {
         break;
     }
 
+    const checksOk = this.pluginChecks(adapter);
+
     this.neovim = new Neovim(this.settings, adapter, {
       searchPaths: Array.from(this.host.getSearchPaths()),
     });
 
-    if (this.settings.openNeovimOnLoad)
+    if (checksOk && this.settings.openNeovimOnLoad)
       this.host.newInstance(this.neovim, adapter);
 
     this.registerEvent(
@@ -109,18 +109,27 @@ export default class EditInNeovim extends Plugin {
     await this.saveData(this.settings);
   }
 
-  pluginChecks() {
-    const found = findNvim({ orderBy: "desc" });
+  pluginChecks(adapter: FileSystemAdapter): boolean {
+    if (!(adapter instanceof FileSystemAdapter)) {
+      notify("unknown adapter, unable to access vault files");
+    }
 
-    if (found.matches.length === 0) {
+    const searchPaths = Array.from(this.host.getSearchPaths());
+    const binary = resolveNvimBinary(this.settings.binaryPath, searchPaths);
+
+    if (!binary && this.settings.binaryPath) {
+      notify(
+        `Manual nvim binary path is invalid: ${this.settings.binaryPath}\n\nPlease check your plugin settings.`,
+      );
+      return false;
+    } else if (!binary) {
       notify(
         "No Valid nvim binary found T_T \n\n make sure neovim is installed and on your PATH",
       );
+      return false;
     }
 
-    if (!(this.app.vault.adapter instanceof FileSystemAdapter)) {
-      notify("unknown adapter, unable to access vault files");
-    }
+    return true;
   }
 
   restAPIEnabled(): string | undefined {

@@ -4,7 +4,7 @@ import EditInNeovimSettingsTab, {
   EditInNeovimSettings,
   DEFAULT_SETTINGS,
 } from "./Settings";
-import { notify, resolveNvimBinary } from "./utils";
+import { notify } from "./utils";
 import Host from "./system/Host";
 import { platform } from "process";
 import { MacOS } from "./system/Mac";
@@ -115,7 +115,7 @@ export default class EditInNeovim extends Plugin {
     }
 
     const searchPaths = Array.from(this.host.getSearchPaths());
-    const binary = resolveNvimBinary(this.settings.binaryPath, searchPaths);
+    const binary = Host.resolveNvimBinary(this.settings.binaryPath, searchPaths);
 
     if (!binary && this.settings.binaryPath) {
       notify(

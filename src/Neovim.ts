@@ -3,9 +3,9 @@ import { attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as net from "node:net";
-import { notify, resolveNvimBinary } from "./utils";
-import type { NvimBinaryMatch } from "./utils";
+import { notify } from "./utils";
 import Host from "./system/Host";
+import type { NvimBinaryMatch } from "./system/Host";
 
 type NeovimOptions = {
   searchPaths: string[];
@@ -24,7 +24,7 @@ export default class Neovim {
   ) {
     this.adapter = adapter;
     this.settings = settings;
-    this.nvimBinary = resolveNvimBinary(
+    this.nvimBinary = Host.resolveNvimBinary(
       this.settings.binaryPath,
       options?.searchPaths,
     );

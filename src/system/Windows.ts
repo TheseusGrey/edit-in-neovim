@@ -1,6 +1,5 @@
 import { normalize } from "node:path";
-import { SpawnProcessOptions } from "src/utils";
-import Host from "./Host";
+import Host, { SpawnProcessOptions } from "./Host";
 
 export class Windows extends Host {
   configureHostArgs(

@@ -1,7 +1,6 @@
 import * as os from "node:os";
 import { delimiter, normalize } from "node:path";
-import { SpawnProcessOptions } from "src/utils";
-import Host from "./Host";
+import Host, { SpawnProcessOptions } from "./Host";
 
 export class MacOS extends Host {
   configureHostArgs(

@@ -3,20 +3,25 @@ import * as os from "node:os";
 // @ts-ignore
 import systeminformation from "systeminformation";
 
+import { accessSync, existsSync, constants } from "node:fs";
 import * as child_process from "node:child_process";
 import { FileSystemAdapter } from "obsidian";
+import { findNvim } from "neovim";
 import Neovim from "src/Neovim";
 import { EditInNeovimSettings } from "src/Settings";
-import { notify, verifyPath } from "src/utils";
+import { notify } from "src/utils";
 import { platform } from "node:process";
 import { isAbsolute, join } from "node:path";
+
+export type NvimBinaryMatch = ReturnType<typeof findNvim>["matches"][number];
 
 type HostOptions = {
   restAPIKey?: string;
 };
 
-type SpawnProcessOptions = child_process.SpawnOptionsWithoutStdio & {
+export type SpawnProcessOptions = child_process.SpawnOptionsWithoutStdio & {
   spawnArgs: string[];
+  headless?: boolean;
 };
 
 export default class Host {
@@ -26,6 +31,35 @@ export default class Host {
   process: ReturnType<(typeof child_process)["spawn"]> | undefined;
   processOptions: SpawnProcessOptions;
   options: HostOptions | undefined;
+
+  static verifyPath(name: string): string | undefined {
+    if (!existsSync(name)) {
+      return undefined;
+    }
+    try {
+      accessSync(name, constants.X_OK);
+      return name;
+    } catch (e) {
+      console.log(
+        `Could not find valid binary due to: ${e}, for name: ${name}`,
+      );
+      return undefined;
+    }
+  }
+
+  static resolveNvimBinary(
+    binaryPath: string,
+    searchPaths?: string[],
+  ): NvimBinaryMatch | undefined {
+    if (!binaryPath) {
+      const found = findNvim({ orderBy: "desc", paths: searchPaths });
+      return found.matches.length > 0 ? found.matches[0] : undefined;
+    }
+
+    if (!Host.verifyPath(binaryPath)) return undefined;
+
+    return { path: binaryPath, nvimVersion: "manual_path" };
+  }
 
   constructor(
     adapter: FileSystemAdapter,
@@ -40,14 +74,14 @@ export default class Host {
 
   searchForBinary(name: string): string | undefined {
     if (isAbsolute(name)) {
-      return verifyPath(name);
+      return Host.verifyPath(name);
     }
 
     const paths = this.getSearchPaths();
     const allPaths = [...paths].map((p) => join(p, name));
 
     for (const path of allPaths) {
-      const verifiedPath = verifyPath(path);
+      const verifiedPath = Host.verifyPath(path);
       if (verifiedPath) {
         return verifiedPath;
       }

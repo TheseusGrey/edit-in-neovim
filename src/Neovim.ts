@@ -1,10 +1,11 @@
 import { TFile, FileSystemAdapter } from "obsidian";
-import { findNvim, attach } from "neovim";
+import { attach } from "neovim";
 import { EditInNeovimSettings } from "./Settings";
 import * as child_process from "node:child_process";
 import * as net from "node:net";
 import { notify } from "./utils";
 import Host from "./system/Host";
+import type { NvimBinaryMatch } from "./system/Host";
 
 type NeovimOptions = {
   searchPaths: string[];
@@ -13,7 +14,7 @@ type NeovimOptions = {
 export default class Neovim {
   instance: ReturnType<typeof attach> | undefined;
   settings: EditInNeovimSettings;
-  nvimBinary: ReturnType<typeof findNvim>["matches"][number] | undefined;
+  nvimBinary: NvimBinaryMatch | undefined;
   adapter: FileSystemAdapter;
 
   constructor(
@@ -23,46 +24,21 @@ export default class Neovim {
   ) {
     this.adapter = adapter;
     this.settings = settings;
-    this.nvimBinary = undefined;
-
-    if (this.settings.binaryPath) {
-      this.nvimBinary = {
-        path: this.settings.binaryPath,
-        nvimVersion: "manual_path",
-      };
-      console.log(`Neovim Information:
-  - Nvim Path: ${this.nvimBinary.path}
-  - Version: ${this.nvimBinary.nvimVersion}
-  - Error: ${this.nvimBinary.error?.message}
-`);
-      return;
-    }
-
-    const foundNvimBinaries = findNvim({
-      orderBy: "desc",
-      paths: options?.searchPaths,
-    });
-    if (foundNvimBinaries.matches.length > 0) {
-      this.nvimBinary = foundNvimBinaries.matches[0];
-      console.log(`Neovim Information:
-  - Nvim Path: ${this.nvimBinary.path}
-  - Version: ${this.nvimBinary.nvimVersion}
-  - Error: ${this.nvimBinary.error?.message}
-`);
-      return;
-    }
-
-    this.nvimBinary = {
-      path: "",
-      nvimVersion: undefined,
-      error: new Error("Neovim binary not found, and no manual path specified"),
-    };
-    console.warn(
-      "Using fallback neovim configuration, plugin will likely not function",
+    this.nvimBinary = Host.resolveNvimBinary(
+      this.settings.binaryPath,
+      options?.searchPaths,
     );
 
-    if (!this.nvimBinary.nvimVersion || this.nvimBinary.error) {
-      notify("Potential issues in plugin config, check logs for more details");
+    if (this.nvimBinary) {
+      console.log(`Neovim Information:
+  - Nvim Path: ${this.nvimBinary.path}
+  - Version: ${this.nvimBinary.nvimVersion}
+  - Error: ${this.nvimBinary.error?.message}
+`);
+    } else {
+      console.warn(
+        "No valid neovim binary resolved, plugin will likely not function",
+      );
     }
   }
 
